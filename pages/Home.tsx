@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Users, Zap, Heart, Star, CheckCircle, Home as HomeIcon, Clock } from 'lucide-react';
+import { ShieldCheck, Users, Zap, Heart, Star, CheckCircle, Home as HomeIcon, Clock, Eye } from 'lucide-react';
 import { NewsItem } from '../types';
 
 interface HomeProps {
@@ -16,11 +16,21 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-blue-900 opacity-50 blur-3xl"></div>
         
         <div className="relative max-w-7xl mx-auto text-center z-10">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
-            <span className="block">MOSCATO NEUMÁTICOS</span>
-            <span className="block text-gold-400 mt-2 text-2xl md:text-4xl uppercase tracking-widest">Tu auto en buenas manos</span>
+          {/* Logo Hero - Clean MOSCATO NEUMATICOS */}
+          <div className="flex flex-col items-center justify-center mb-8 leading-none">
+             <span className="text-6xl md:text-8xl font-semibold tracking-wide text-white drop-shadow-md" style={{fontFamily: 'Inter, sans-serif'}}>
+               MOSCATO
+             </span>
+             <span className="text-xl md:text-3xl uppercase tracking-[0.35em] text-white/90 font-light mt-4">
+               NEUMATICOS
+             </span>
+          </div>
+          
+          <h1 className="text-xl md:text-3xl font-bold tracking-widest text-gold-400 uppercase mt-8 mb-4">
+            TU AUTO EN BUENAS MANOS
           </h1>
-          <p className="text-lg md:text-xl text-gray-200 max-w-3xl mx-auto font-light mt-6">
+          
+          <p className="text-lg md:text-xl text-brand-200 max-w-3xl mx-auto font-light mt-6">
             Más de 45 años brindando calidad y confianza en Rosario.
           </p>
           <div className="mt-8">
@@ -32,7 +42,7 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
       </div>
 
       {/* Mission & Vision Section */}
-      <div className="py-16 bg-white">
+      <div className="py-16 bg-white/90 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Misión */}
@@ -74,7 +84,7 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
       </div>
 
       {/* Values Section */}
-      <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 rounded-3xl my-8">
+      <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 bg-gray-50/90 backdrop-blur-sm rounded-3xl my-8">
         <div className="text-center mb-12">
           <h2 className="text-base text-brand-600 font-bold tracking-wide uppercase">Nuestra Identidad</h2>
           <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
@@ -182,7 +192,7 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
       </div>
       
       {/* Internal Notice Board - Dynamic */}
-      <div className="bg-gray-50 py-12 border-t border-gray-200">
+      <div className="bg-gray-50/90 backdrop-blur-sm py-12 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <div className="flex items-center mb-6">
              <div className="bg-brand-600 h-8 w-1 mr-3"></div>
@@ -233,4 +243,3 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
     </div>
   );
 };
-import { Eye } from 'lucide-react';

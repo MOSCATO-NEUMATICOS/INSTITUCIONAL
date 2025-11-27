@@ -184,9 +184,6 @@ export const Admin: React.FC<AdminProps> = ({
               Ingresar
             </button>
           </form>
-          <div className="mt-4 text-center text-xs text-gray-400">
-            <p>Hint: moscato2024</p>
-          </div>
         </div>
       </div>
     );
@@ -520,3 +517,4 @@ export const Admin: React.FC<AdminProps> = ({
     </div>
   );
 };
+    

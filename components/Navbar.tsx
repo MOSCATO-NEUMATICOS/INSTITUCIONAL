@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Page } from '../types';
-import { Menu, X, Car, BookOpen, Wrench, MessageSquare, Home, Lock } from 'lucide-react';
+import { Menu, X, BookOpen, Wrench, MessageSquare, Home, Lock } from 'lucide-react';
 
 interface NavbarProps {
   currentPage: Page;
@@ -26,14 +26,14 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
     <nav className="bg-brand-900 text-white sticky top-0 z-50 shadow-lg border-b-4 border-gold-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <div className="flex items-center cursor-pointer group" onClick={() => handleNav(Page.HOME)}>
-            <div className="bg-gold-400 p-2 rounded-full mr-3 group-hover:bg-gold-500 transition-colors">
-              <Car className="h-6 w-6 text-brand-900" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-xl leading-none tracking-tight">MOSCATO</span>
-              <span className="font-bold text-lg leading-none text-gold-400 tracking-wider">NEUMÁTICOS</span>
-            </div>
+          {/* LOGO MOSCATO NEUMATICOS - CLEAN STYLE */}
+          <div className="flex flex-col items-center cursor-pointer group leading-none justify-center pt-2" onClick={() => handleNav(Page.HOME)}>
+             <span className="font-semibold text-3xl tracking-wide text-white drop-shadow-sm" style={{fontFamily: 'Inter, sans-serif'}}>
+                MOSCATO
+             </span>
+             <span className="text-[0.65rem] uppercase tracking-[0.35em] text-white/90 font-medium mt-1">
+                NEUMATICOS
+             </span>
           </div>
           
           <div className="hidden md:block">
