@@ -1,16 +1,18 @@
 
 import React, { useState } from 'react';
-import { Timer, Wrench, ArrowRight, Activity, DollarSign, Database, ChevronRight } from 'lucide-react';
+import { Timer, Wrench, ArrowRight, Activity, DollarSign, Database, ChevronRight, Car } from 'lucide-react';
 import { OEGuide } from '../components/tools/OEGuide';
 import { UnitConverter } from '../components/tools/UnitConverter';
 import { CashBox } from '../components/tools/CashBox';
 import { TireComparator } from '../components/tools/TireComparator';
 import { LaborTime } from '../components/tools/LaborTime';
+import { LicensePlateLookup } from '../components/tools/LicensePlateLookup';
 
-type ToolId = 'oe_guide' | 'converter' | 'cash_box' | 'tire_comparator' | 'labor_time';
+type ToolId = 'oe_guide' | 'converter' | 'cash_box' | 'tire_comparator' | 'plate_lookup' | 'labor_time';
 
 const TOOLS_MENU = [
   { id: 'oe_guide', label: 'Guía Equipamiento Original', icon: Database, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-600' },
+  { id: 'plate_lookup', label: 'Año por Patente', icon: Car, color: 'text-indigo-600', bg: 'bg-indigo-100', border: 'border-indigo-600' },
   { id: 'converter', label: 'Convertidor de Presión', icon: Wrench, color: 'text-brand-600', bg: 'bg-brand-100', border: 'border-brand-600' },
   { id: 'cash_box', label: 'Arqueo de Caja', icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100', border: 'border-green-600' },
   { id: 'tire_comparator', label: 'Comparador Neumáticos', icon: Activity, color: 'text-gold-600', bg: 'bg-gold-100', border: 'border-gold-600' },
@@ -65,6 +67,7 @@ export const Tools: React.FC = () => {
         {/* --- MAIN CONTENT AREA --- */}
         <div className="lg:col-span-3">
           {activeTool === 'oe_guide' && <OEGuide />}
+          {activeTool === 'plate_lookup' && <LicensePlateLookup />}
           {activeTool === 'converter' && <UnitConverter />}
           {activeTool === 'cash_box' && <CashBox />}
           {activeTool === 'tire_comparator' && <TireComparator />}
