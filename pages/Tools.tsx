@@ -7,6 +7,7 @@ import { CashBox } from '../components/tools/CashBox';
 import { TireComparator } from '../components/tools/TireComparator';
 import { LaborTime } from '../components/tools/LaborTime';
 import { LicensePlateLookup } from '../components/tools/LicensePlateLookup';
+import { Page } from '../types';
 
 type ToolId = 'oe_guide' | 'converter' | 'cash_box' | 'tire_comparator' | 'plate_lookup' | 'labor_time';
 
@@ -19,7 +20,11 @@ const TOOLS_MENU = [
   { id: 'labor_time', label: 'Calculadora de Tiempos', icon: Timer, color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-300' },
 ] as const;
 
-export const Tools: React.FC = () => {
+interface ToolsProps {
+  onNavigate: (page: Page) => void;
+}
+
+export const Tools: React.FC<ToolsProps> = ({ onNavigate }) => {
   const [activeTool, setActiveTool] = useState<ToolId>('oe_guide');
 
   return (
@@ -57,7 +62,10 @@ export const Tools: React.FC = () => {
 
              <div className="p-4 mt-4 border-t border-gray-200 bg-gray-50 text-center">
                 <h4 className="text-xs font-bold text-gray-500 mb-2">¿Sugerencias?</h4>
-                <button className="text-brand-600 hover:text-brand-800 text-xs font-semibold flex items-center justify-center w-full py-2 border border-brand-200 rounded bg-white hover:bg-brand-50 transition-colors">
+                <button 
+                  onClick={() => onNavigate(Page.FEEDBACK)}
+                  className="text-brand-600 hover:text-brand-800 text-xs font-semibold flex items-center justify-center w-full py-2 border border-brand-200 rounded bg-white hover:bg-brand-50 transition-colors"
+                >
                   Ir al Buzón <ArrowRight className="w-3 h-3 ml-1" />
                 </button>
              </div>

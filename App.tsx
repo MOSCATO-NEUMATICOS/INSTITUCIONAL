@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
@@ -348,7 +349,7 @@ function App() {
       case Page.MANUALS:
         return <Manuals manuals={manuals} />;
       case Page.TOOLS:
-        return <Tools />;
+        return <Tools onNavigate={setCurrentPage} />;
       case Page.FEEDBACK:
         return <Feedback onFeedbackSubmit={handleAddFeedback} />;
       case Page.ADMIN:
