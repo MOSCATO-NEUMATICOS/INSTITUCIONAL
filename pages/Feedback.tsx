@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Send, User, UserX, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Send, User, UserX, CheckCircle, Loader2 } from 'lucide-react';
 import { FeedbackItem } from '../types';
 
 interface FeedbackProps {
@@ -21,7 +21,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
     setIsSubmitting(true);
 
     try {
-      // Simulating a small network delay for better UX
+      // 1. Simulate internal network delay
       await new Promise(resolve => setTimeout(resolve, 600));
 
       const newItem: FeedbackItem = {
@@ -33,6 +33,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
         message,
       };
 
+      // 2. Save internally (Cloud / LocalStorage)
       if (onFeedbackSubmit) {
         onFeedbackSubmit(newItem);
       }
@@ -48,6 +49,8 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
   const handleReset = () => {
     setSubmitted(false);
     setMessage('');
+    // Keep name if not anonymous for convenience
+    if (isAnonymous) setName('');
   };
 
   return (
@@ -70,8 +73,12 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
           
           <form onSubmit={handleSubmit} className="p-8 space-y-6">
             
-            <div className="flex items-center justify-end">
-              <label className="flex items-center cursor-pointer">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-4 gap-4">
+               <div className="text-sm text-gray-500 italic">
+                 Los campos marcados son obligatorios para el envío.
+               </div>
+               
+               <label className="flex items-center cursor-pointer">
                 <div className="relative">
                   <input 
                     type="checkbox" 
@@ -89,7 +96,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
             </div>
 
             {!isAnonymous && (
-              <div className="transition-opacity duration-300">
+              <div className="transition-opacity duration-300 animate-fade-in">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tu Nombre</label>
                 <input
                   type="text"
@@ -117,7 +124,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
             <button
               type="submit"
               disabled={isSubmitting || !message}
-              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition-colors ${
+              className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-bold text-white transition-colors ${
                 isSubmitting || !message
                   ? 'bg-brand-400 cursor-not-allowed'
                   : 'bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500'
@@ -126,7 +133,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                  Enviando...
+                  Procesando...
                 </>
               ) : (
                 <>
@@ -143,16 +150,18 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
             <CheckCircle className="h-10 w-10 text-green-600" />
           </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">¡Mensaje Recibido!</h3>
-          <p className="text-gray-500 mb-8">
-            Gracias por tu aporte. Hemos recibido tu mensaje correctamente.
+          <p className="text-gray-500 mb-6">
+            Gracias por tu aporte. Tu mensaje ha sido guardado correctamente en el sistema.
           </p>
 
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
-          >
-            Enviar otro mensaje
-          </button>
+          <div className="mt-6">
+            <button
+              onClick={handleReset}
+              className="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+            >
+              Enviar otro mensaje
+            </button>
+          </div>
         </div>
       )}
     </div>

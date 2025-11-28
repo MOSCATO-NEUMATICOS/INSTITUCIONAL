@@ -255,11 +255,6 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
             
             {/* Action Buttons Footer */}
             <div className="bg-gray-50 px-6 py-4 rounded-b-lg border-t border-gray-100 flex flex-col gap-3">
-              <span className="text-xs text-gray-500 flex items-center mb-1">
-                <PlayCircle className="w-4 h-4 mr-1" />
-                Lectura: {manual.readTime}
-              </span>
-              
               <div className="flex justify-between items-center gap-2">
                 {/* READ ONLINE BUTTON */}
                 {(manual.textContent || manual.link) ? (

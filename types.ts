@@ -13,7 +13,6 @@ export interface Manual {
   category: ManualCategory;
   description: string;
   lastUpdated: string;
-  readTime: string;
   link?: string; // Optional link to file (Base64 PDF)
   textContent?: string; // Optional full text content for online reading
 }

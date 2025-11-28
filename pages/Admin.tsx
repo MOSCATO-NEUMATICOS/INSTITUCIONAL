@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Manual, ManualCategory, NewsItem, FeedbackItem } from '../types';
-import { Trash2, Plus, LogIn, Save, Lock, Upload, FileText, MessageSquare, User, UserX, AlertOctagon, XCircle } from 'lucide-react';
+import { Trash2, Plus, LogIn, Save, Lock, Upload, FileText, MessageSquare, User, UserX, AlertOctagon, XCircle, Download, Database, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 interface AdminProps {
   manuals: Manual[];
@@ -12,6 +12,7 @@ interface AdminProps {
   onAddNews: (news: NewsItem) => void;
   onDeleteNews: (id: string) => void;
   onDeleteFeedback?: (id: string) => void;
+  onImportData?: (data: any) => void;
 }
 
 export const Admin: React.FC<AdminProps> = ({ 
@@ -22,12 +23,13 @@ export const Admin: React.FC<AdminProps> = ({
   onDeleteManual, 
   onAddNews, 
   onDeleteNews,
-  onDeleteFeedback
+  onDeleteFeedback,
+  onImportData
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(''); // State for login error message
-  const [activeTab, setActiveTab] = useState<'manuals' | 'news' | 'messages'>('manuals');
+  const [activeTab, setActiveTab] = useState<'manuals' | 'news' | 'messages' | 'system'>('manuals');
 
   // Delete Modal State
   const [deleteModal, setDeleteModal] = useState<{
@@ -41,7 +43,6 @@ export const Admin: React.FC<AdminProps> = ({
     title: '',
     description: '',
     category: ManualCategory.TALLER, // Updated default to TALLER
-    readTime: '',
     link: '' // Store Base64 PDF data here
   });
   const [selectedFileName, setSelectedFileName] = useState<string>('');
@@ -116,14 +117,13 @@ export const Admin: React.FC<AdminProps> = ({
       title: newManual.title!,
       description: newManual.description!,
       category: newManual.category || ManualCategory.TALLER,
-      readTime: newManual.readTime || '5 min',
       lastUpdated: new Date().toLocaleDateString('es-AR'),
       link: newManual.link // The Base64 PDF string
     };
 
     onAddManual(manual);
     // Reset form
-    setNewManual({ title: '', description: '', category: ManualCategory.TALLER, readTime: '', link: '' });
+    setNewManual({ title: '', description: '', category: ManualCategory.TALLER, link: '' });
     setSelectedFileName('');
   };
 
@@ -141,6 +141,49 @@ export const Admin: React.FC<AdminProps> = ({
 
     onAddNews(newsItem);
     setNewNews({ title: '', description: '', category: 'General' });
+  };
+
+  // --- SYSTEM: EXPORT / IMPORT ---
+  const handleExportData = () => {
+    const data = {
+      manuals,
+      news,
+      feedbackItems
+    };
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `backup_moscato_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        if (onImportData) {
+          if (confirm('ATENCIÓN: Esto reemplazará los datos actuales (manuales, novedades, mensajes) con los del archivo. ¿Desea continuar?')) {
+            onImportData(json);
+            alert('¡Datos restaurados con éxito!');
+          }
+        }
+      } catch (error) {
+        alert('Error al leer el archivo. Asegúrese de que sea un JSON válido.');
+        console.error(error);
+      }
+    };
+    reader.readAsText(file);
+    // Reset value to allow re-uploading same file if needed
+    e.target.value = '';
   };
 
   if (!isAuthenticated) {
@@ -267,6 +310,14 @@ export const Admin: React.FC<AdminProps> = ({
           >
             Buzón de Mensajes
           </button>
+          <button
+            onClick={() => setActiveTab('system')}
+            className={`flex-1 min-w-[150px] py-4 text-center font-bold text-sm uppercase tracking-wider ${
+              activeTab === 'system' ? 'bg-brand-50 text-brand-600 border-b-2 border-brand-600' : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            Base de Datos
+          </button>
         </div>
 
         <div className="p-6">
@@ -307,16 +358,6 @@ export const Admin: React.FC<AdminProps> = ({
                       rows={3}
                       value={newManual.description}
                       onChange={(e) => setNewManual({...newManual, description: e.target.value})}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Tiempo de Lectura</label>
-                    <input
-                      type="text"
-                      placeholder="Ej: 10 min"
-                      value={newManual.readTime}
-                      onChange={(e) => setNewManual({...newManual, readTime: e.target.value})}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
                     />
                   </div>
@@ -512,9 +553,68 @@ export const Admin: React.FC<AdminProps> = ({
               )}
             </div>
           )}
+
+          {activeTab === 'system' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="bg-white p-8 rounded-xl border-2 border-dashed border-brand-200 hover:border-brand-400 transition-colors text-center group">
+                  <div className="w-16 h-16 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-brand-100 transition-colors">
+                     <Download className="w-8 h-8 text-brand-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Copia de Seguridad (Exportar)</h3>
+                  <p className="text-gray-500 text-sm mb-6">
+                    Descarga todos los datos actuales (manuales, novedades y mensajes) a un archivo local para transferirlos a otro dispositivo.
+                  </p>
+                  <button 
+                    onClick={handleExportData}
+                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-brand-600 hover:bg-brand-700 focus:outline-none"
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    Descargar Archivo
+                  </button>
+               </div>
+
+               <div className="bg-white p-8 rounded-xl border-2 border-dashed border-green-200 hover:border-green-400 transition-colors text-center group">
+                  <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-100 transition-colors">
+                     <RefreshCw className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Restaurar Datos (Importar)</h3>
+                  <p className="text-gray-500 text-sm mb-6">
+                    Carga un archivo de respaldo generado en otro dispositivo. <br/>
+                    <span className="text-red-500 font-bold">Nota: Esto reemplazará los datos actuales.</span>
+                  </p>
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      accept=".json"
+                      onChange={handleImportFile}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <button className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none pointer-events-none">
+                      <Upload className="w-5 h-5 mr-2" />
+                      Seleccionar Archivo
+                    </button>
+                  </div>
+               </div>
+               
+               <div className="md:col-span-2 bg-blue-50 p-4 rounded-lg flex items-start">
+                  <Database className="w-5 h-5 text-blue-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-bold text-blue-800">¿Cómo sincronizar mis dispositivos?</h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Dado que esta aplicación funciona sin servidor en la nube, los datos se guardan en cada dispositivo por separado. 
+                      Para pasar datos del celular a la PC:
+                    </p>
+                    <ol className="list-decimal list-inside text-sm text-blue-700 mt-2 space-y-1">
+                       <li>En el celular, usa el botón <strong>"Descargar Archivo"</strong>.</li>
+                       <li>Envía ese archivo a tu PC (por Email, WhatsApp Web, Drive, etc).</li>
+                       <li>En la PC, usa el botón <strong>"Seleccionar Archivo"</strong> y carga el archivo descargado.</li>
+                    </ol>
+                  </div>
+               </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
-    
