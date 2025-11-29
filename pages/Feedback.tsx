@@ -29,7 +29,8 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
         timestamp: Date.now(),
         date: new Date().toLocaleString('es-AR'),
         isAnonymous,
-        name: isAnonymous ? undefined : name,
+        // FIX: Firestore falla si enviamos 'undefined'. Si es anónimo, enviamos explícitamente el string 'Anónimo'.
+        name: isAnonymous ? 'Anónimo' : name, 
         message,
       };
 
@@ -71,7 +72,10 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
             </h3>
           </div>
           
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <form onSubmit={handleSubmit} className="p-8 space-y-6" autoComplete="off">
+            {/* Campo oculto para evitar que Chrome piense que es un login y sugiera contraseñas */}
+            <input type="text" name="fake_usernameremembered" style={{display: 'none'}} tabIndex={-1} />
+            <input type="password" name="fake_passwordremembered" style={{display: 'none'}} tabIndex={-1} />
             
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-4 gap-4">
                <div className="text-sm text-gray-500 italic">
@@ -100,11 +104,14 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tu Nombre</label>
                 <input
                   type="text"
+                  name="feedback_author" // Nombre único para evitar autocompletado de usuario
+                  id="feedback_author"
                   required={!isAnonymous}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm border p-3 bg-white text-gray-900"
                   placeholder="Juan Pérez"
+                  autoComplete="off"
                 />
               </div>
             )}
@@ -112,6 +119,8 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
               <textarea
+                name="feedback_content" // Nombre explícito
+                id="feedback_content"
                 rows={6}
                 required
                 value={message}
