@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Info, Car, Calendar, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Search, Info, Car, Calendar, AlertTriangle, RotateCcw, HelpCircle, X } from 'lucide-react';
 
 interface PlateResult {
   year: string;
@@ -11,6 +11,7 @@ interface PlateResult {
 export const LicensePlateLookup: React.FC = () => {
   const [plateInput, setPlateInput] = useState('');
   const [result, setResult] = useState<PlateResult | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Force uppercase and remove spaces/special chars
@@ -107,15 +108,44 @@ export const LicensePlateLookup: React.FC = () => {
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-lg border-t-4 border-t-indigo-600 animate-fade-in">
       <div className="p-6 md:p-8">
-        <div className="flex items-center mb-6">
-          <div className="h-12 w-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 text-indigo-700">
-            <Car className="h-7 w-7" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="h-12 w-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4 text-indigo-700">
+              <Car className="h-7 w-7" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">Calculadora de Año por Patente</h3>
+              <p className="text-sm text-gray-500">Estimación de modelo basada en la serie de la matrícula.</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-2xl font-bold text-gray-900">Calculadora de Año por Patente</h3>
-            <p className="text-sm text-gray-500">Estimación de modelo basada en la serie de la matrícula.</p>
-          </div>
+          {/* Standardized Help Button (Indigo Theme) */}
+          <button
+            onClick={() => setShowHelp(!showHelp)}
+            className="flex items-center text-sm font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-2 rounded-md border border-indigo-100 hover:border-indigo-200 transition-colors"
+            title="Ayuda / Formatos"
+          >
+            <HelpCircle className="w-4 h-4 mr-2" />
+            Ayuda
+          </button>
         </div>
+
+        {/* HELP SECTION */}
+        {showHelp && (
+          <div className="mb-6 bg-indigo-50 border border-indigo-200 rounded-lg p-4 animate-fade-in relative">
+            <button 
+              onClick={() => setShowHelp(false)}
+              className="absolute top-2 right-2 text-indigo-400 hover:text-indigo-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h4 className="text-sm font-bold text-indigo-900 mb-2">Formatos Soportados</h4>
+            <ul className="text-xs text-indigo-800 space-y-1 list-disc list-inside">
+              <li><strong>Mercosur (Actual):</strong> 2 Letras + 3 Números + 2 Letras (ej: AA 123 BB). Desde 2016.</li>
+              <li><strong>Nacional (Anterior):</strong> 3 Letras + 3 Números (ej: OMD 458). 1995-2016.</li>
+              <li><strong>Provincial (Antiguo):</strong> 1 Letra + 6/7 Números (ej: C 1234567). Pre-1995.</li>
+            </ul>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mt-8">
           

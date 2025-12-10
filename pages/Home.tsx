@@ -1,5 +1,6 @@
-import React from 'react';
-import { ShieldCheck, Users, Zap, Heart, Star, CheckCircle, Home as HomeIcon, Clock, Eye } from 'lucide-react';
+
+import React, { useRef } from 'react';
+import { ShieldCheck, Users, TrendingUp, Heart, Star, CheckCircle, Home as HomeIcon, Clock, Eye, Sparkles, BellRing, ArrowDown } from 'lucide-react';
 import { NewsItem } from '../types';
 
 interface HomeProps {
@@ -7,10 +8,38 @@ interface HomeProps {
 }
 
 export const Home: React.FC<HomeProps> = ({ news }) => {
+  const newsSectionRef = useRef<HTMLDivElement>(null);
+  
+  // Logic to determine if a highlight is still valid (within 15 days)
+  const isActiveHighlight = (item: NewsItem) => {
+    if (!item.highlight) return false;
+    try {
+      // Date format is dd/mm/yyyy from storage
+      const [day, month, year] = item.date.split('/');
+      const itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const now = new Date();
+      
+      // Calculate difference in days
+      const diffTime = Math.abs(now.getTime() - itemDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      return diffDays <= 15; // Updated to 15 days
+    } catch (e) {
+      return false; // Fallback if date parse fails
+    }
+  };
+
+  const highlightedNews = news.filter(isActiveHighlight);
+  const regularNews = news.filter(n => !isActiveHighlight(n));
+
+  const scrollToNews = () => {
+    newsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="animate-fade-in">
       {/* Hero Section */}
-      <div className="relative bg-brand-900 text-white py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+      <div className="relative bg-brand-900 text-white py-24 px-4 sm:px-6 lg:px-8 overflow-hidden min-h-[85vh] flex flex-col justify-center">
         {/* Abstract background shapes */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-brand-800 opacity-50 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-blue-900 opacity-50 blur-3xl"></div>
@@ -30,19 +59,32 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
             TU AUTO EN BUENAS MANOS
           </h1>
           
-          <p className="text-lg md:text-xl text-brand-200 max-w-3xl mx-auto font-light mt-6">
+          <p className="text-lg md:text-xl text-brand-200 max-w-3xl mx-auto font-light mt-6 mb-10">
             Más de 45 años brindando calidad y confianza en Rosario.
           </p>
-          <div className="mt-8">
-            <span className="inline-flex items-center px-4 py-2 rounded-full border border-gold-400 bg-brand-800 text-gold-400 font-semibold text-sm">
-              <CheckCircle className="w-4 h-4 mr-2" /> Portal Interno Oficial
+
+          <div className="flex flex-col items-center gap-4">
+            <span className="inline-flex items-center px-4 py-2 rounded-full border border-gold-400/30 bg-brand-800/50 text-gold-100 font-semibold text-sm backdrop-blur-sm">
+              <CheckCircle className="w-4 h-4 mr-2 text-gold-400" /> Portal Interno Oficial
             </span>
+
+            {/* NOTIFICATION BUTTON FOR HIGHLIGHTED NEWS */}
+            {highlightedNews.length > 0 && (
+              <button 
+                onClick={scrollToNews}
+                className="group mt-6 relative inline-flex items-center px-8 py-4 bg-gold-400 overflow-hidden text-brand-900 font-bold rounded-full hover:bg-gold-300 transition-all shadow-lg hover:shadow-gold-400/50 hover:-translate-y-1 animate-pulse-slow"
+              >
+                <BellRing className="w-6 h-6 mr-3 animate-wiggle" />
+                <span className="text-lg">¡Hay {highlightedNews.length} Novedades Destacadas!</span>
+                <ArrowDown className="w-5 h-5 ml-2 group-hover:translate-y-1 transition-transform" />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Mission & Vision Section */}
-      <div className="py-16 bg-white/90 backdrop-blur-sm">
+      <div className="py-16 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Misión */}
@@ -84,159 +126,217 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
       </div>
 
       {/* Values Section */}
-      <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 bg-gray-50/90 backdrop-blur-sm rounded-3xl my-8">
-        <div className="text-center mb-12">
-          <h2 className="text-base text-brand-600 font-bold tracking-wide uppercase">Nuestra Identidad</h2>
-          <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            Valores Institucionales
-          </p>
-          <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-            Los pilares que sostienen nuestro trabajo diario.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          
-          {/* Valor 1 */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
-            <div className="flex items-center mb-4">
-              <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
-                <ShieldCheck className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900">Compromiso con la Seguridad</h3>
-            </div>
-            <p className="text-gray-600 text-sm">
-              Priorizar la seguridad de los clientes a través de productos de alta calidad y servicios confiables.
+      <div className="bg-gray-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-base text-brand-600 font-bold tracking-wide uppercase">Nuestra Identidad</h2>
+            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+              Valores Institucionales: CREERTE
+            </p>
+            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+              Los pilares que sostienen nuestro trabajo diario y nos guían hacia el futuro.
             </p>
           </div>
 
-          {/* Valor 2 */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
-            <div className="flex items-center mb-4">
-              <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
-                <Eye className="h-6 w-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            
+            {/* C - Compromiso */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
+              <div className="flex items-center mb-4">
+                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                  <ShieldCheck className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  <span className="text-2xl text-brand-600 mr-1">C</span>ompromiso con la Seguridad
+                </h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Responsabilidad y Transparencia</h3>
+              <p className="text-gray-600 text-sm">
+                Priorizar siempre la seguridad del cliente y de su vehículo mediante diagnósticos responsables y prácticas confiables.
+              </p>
             </div>
-            <p className="text-gray-600 text-sm">
-              Actuar con honestidad en cada diagnóstico y presupuesto.
-            </p>
-          </div>
 
-          {/* Valor 3 */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
-            <div className="flex items-center mb-4">
-              <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
-                <Star className="h-6 w-6" />
+            {/* R - Responsabilidad */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
+              <div className="flex items-center mb-4">
+                <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
+                  <Eye className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  <span className="text-2xl text-gold-500 mr-1">R</span>esponsabilidad y Transparencia
+                </h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Excelencia en el Servicio</h3>
+              <p className="text-gray-600 text-sm">
+                Ser claros, honestos y coherentes en cada diagnóstico, presupuesto y comunicación.
+              </p>
             </div>
-            <p className="text-gray-600 text-sm">
-              Brindar atención personalizada con profesionalismo y buena disposición en cada interacción e instalaciones acordes para que el cliente se sienta a gusto.
-            </p>
-          </div>
 
-          {/* Valor 4 */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
-            <div className="flex items-center mb-4">
-              <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
-                <Zap className="h-6 w-6" />
+            {/* E - Excelencia */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
+              <div className="flex items-center mb-4">
+                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                  <Star className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  <span className="text-2xl text-brand-600 mr-1">E</span>xcelencia en el Servicio
+                </h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Innovación Continua</h3>
+              <p className="text-gray-600 text-sm">
+                Brindar atención profesional, personalizada y orientada a la mejor experiencia posible.
+              </p>
             </div>
-            <p className="text-gray-600 text-sm">
-              Adoptar tecnologías avanzadas y prácticas eficientes, acompañado de la formación constante de nuestro equipo.
-            </p>
-          </div>
 
-          {/* Valor 5 */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
-            <div className="flex items-center mb-4">
-              <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
-                <HomeIcon className="h-6 w-6" />
+            {/* E - Espacios */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
+              <div className="flex items-center mb-4">
+                <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
+                  <HomeIcon className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  <span className="text-2xl text-gold-500 mr-1">E</span>spacios que Inspiran Confianza
+                </h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Espacios que inspiran confianza</h3>
+              <p className="text-gray-600 text-sm">
+                Crear ambientes modernos, ordenados y cómodos que transmitan tranquilidad y profesionalismo.
+              </p>
             </div>
-            <p className="text-gray-600 text-sm">
-              Tener instalaciones modernas y confortables para la mejor experiencia del cliente.
-            </p>
-          </div>
 
-          {/* Valor 6 */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
-            <div className="flex items-center mb-4">
-              <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
-                <Users className="h-6 w-6" />
+            {/* R - Respeto */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
+              <div className="flex items-center mb-4">
+                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                  <Heart className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  <span className="text-2xl text-brand-600 mr-1">R</span>espeto y Empatía
+                </h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Trabajo en Equipo</h3>
+              <p className="text-gray-600 text-sm">
+                Tratar a clientes, proveedores y compañeros con escucha, respeto y comprensión.
+              </p>
             </div>
-            <p className="text-gray-600 text-sm">
-              Fomentar la colaboración interna y con aliados estratégicos para ofrecer soluciones integrales.
-            </p>
-          </div>
 
-          {/* Valor 7 */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all md:col-span-2 lg:col-span-3 xl:col-span-2">
-            <div className="flex items-center mb-4">
-              <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
-                <Heart className="h-6 w-6" />
+            {/* T - Trabajo en Equipo */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
+              <div className="flex items-center mb-4">
+                <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
+                  <Users className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  <span className="text-2xl text-gold-500 mr-1">T</span>rabajo en Equipo
+                </h3>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Respeto y Empatía</h3>
+              <p className="text-gray-600 text-sm">
+                Colaborar para resolver problemas, mejorar procesos y ofrecer soluciones integrales.
+              </p>
             </div>
-            <p className="text-gray-600 text-sm">
-              Tratar a cada cliente, colaborador y proveedor con respeto y empatía, entendiendo sus necesidades y expectativas.
-            </p>
-          </div>
 
+            {/* E - Evolución (Span 2 cols on MD/LG to center or fill) */}
+            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all md:col-span-2 lg:col-span-3 xl:col-span-2">
+              <div className="flex items-center mb-4">
+                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                  <TrendingUp className="h-6 w-6" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  <span className="text-2xl text-brand-600 mr-1">E</span>volución Continua
+                </h3>
+              </div>
+              <p className="text-gray-600 text-sm">
+                Aprender, mejorar y adaptarse constantemente para brindar un servicio cada vez mejor.
+              </p>
+            </div>
+
+          </div>
         </div>
       </div>
-      
-      {/* Internal Notice Board - Dynamic */}
-      <div className="bg-gray-50/90 backdrop-blur-sm py-12 border-t border-gray-200">
+
+      {/* Internal Notice Board - Dynamic (Moved to Bottom) */}
+      <div ref={newsSectionRef} className="bg-gradient-to-b from-white to-gray-100 py-16 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-           <div className="flex items-center mb-6">
-             <div className="bg-brand-600 h-8 w-1 mr-3"></div>
-             <h3 className="text-2xl font-bold text-gray-900">Novedades Internas</h3>
-           </div>
            
-           <div className="bg-white shadow-md overflow-hidden sm:rounded-lg border border-gray-200">
-             {news.length > 0 ? (
-               <ul className="divide-y divide-gray-200">
-                 {news.map((item) => (
-                   <li key={item.id}>
-                     <div className="px-4 py-5 sm:px-6 hover:bg-gray-50 cursor-pointer transition-colors">
-                       <div className="flex items-center justify-between">
-                         <p className="text-base font-bold text-brand-700 truncate">{item.title}</p>
-                         <div className="ml-2 flex-shrink-0 flex">
-                           <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
-                             item.category.includes('Ventas') ? 'bg-gold-100 text-yellow-800 border-gold-200' :
-                             item.category.includes('Taller') ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                             'bg-gray-100 text-gray-800 border-gray-200'
-                           }`}>
-                             {item.category}
-                           </span>
-                         </div>
-                       </div>
-                       <div className="mt-2 sm:flex sm:justify-between">
-                         <div className="sm:flex">
-                           <p className="flex items-center text-sm text-gray-500">
-                             {item.description}
-                           </p>
-                         </div>
-                         <div className="mt-2 flex items-center text-sm text-gray-400 sm:mt-0">
-                           <Clock className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                           <p>{item.date}</p>
-                         </div>
-                       </div>
-                     </div>
-                   </li>
-                 ))}
-               </ul>
-             ) : (
-               <div className="p-6 text-center text-gray-500">
-                 No hay novedades recientes para mostrar.
+           {/* HIGHLIGHTED SECTION */}
+           {highlightedNews.length > 0 && (
+             <div className="mb-12 animate-fade-in-up">
+               <div className="flex items-center mb-6">
+                 <div className="bg-gold-400 h-8 w-1 mr-3 rounded-full"></div>
+                 <h3 className="text-3xl font-bold text-gray-900 flex items-center">
+                   <Sparkles className="w-8 h-8 mr-3 text-gold-500 fill-current animate-pulse" />
+                   Cartelera Destacada
+                 </h3>
                </div>
-             )}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 {highlightedNews.map(item => (
+                   <div key={item.id} className="bg-white rounded-2xl shadow-xl border-l-8 border-l-gold-400 p-8 relative overflow-hidden group hover:transform hover:-translate-y-1 transition-all duration-300">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Star className="w-32 h-32 text-gold-400" />
+                      </div>
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gold-100 text-yellow-800">
+                            Importante
+                          </span>
+                          <span className="text-sm font-bold text-gray-400 flex items-center bg-gray-50 px-2 py-1 rounded">
+                             <Clock className="w-4 h-4 mr-1" />
+                             {item.date}
+                          </span>
+                        </div>
+                        <h4 className="text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{item.title}</h4>
+                        <p className="text-gray-600 text-base leading-relaxed">{item.description}</p>
+                      </div>
+                   </div>
+                 ))}
+               </div>
+             </div>
+           )}
+
+           {/* REGULAR NEWS SECTION */}
+           <div className="mt-8">
+             <div className="flex items-center mb-6">
+               <div className="bg-brand-600 h-8 w-1 mr-3 rounded-full"></div>
+               <h3 className="text-2xl font-bold text-gray-900">Novedades Generales</h3>
+             </div>
+             
+             <div className="bg-white shadow-lg overflow-hidden sm:rounded-xl border border-gray-200">
+               {regularNews.length > 0 ? (
+                 <ul className="divide-y divide-gray-100">
+                   {regularNews.map((item) => (
+                     <li key={item.id}>
+                       <div className="px-6 py-5 hover:bg-brand-50/50 cursor-pointer transition-colors group">
+                         <div className="flex items-center justify-between">
+                           <p className="text-lg font-bold text-brand-800 truncate group-hover:text-brand-600 transition-colors">{item.title}</p>
+                           <div className="ml-2 flex-shrink-0 flex">
+                             <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
+                               item.category.includes('Ventas') ? 'bg-gold-100 text-yellow-800 border-gold-200' :
+                               item.category.includes('Taller') ? 'bg-blue-100 text-blue-800 border-blue-200' :
+                               'bg-gray-100 text-gray-800 border-gray-200'
+                             }`}>
+                               {item.category}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="mt-2 sm:flex sm:justify-between">
+                           <div className="sm:flex">
+                             <p className="flex items-center text-sm text-gray-600 leading-relaxed">
+                               {item.description}
+                             </p>
+                           </div>
+                           <div className="mt-2 flex items-center text-xs text-gray-400 sm:mt-0 font-medium">
+                             <Clock className="flex-shrink-0 mr-1.5 h-3.5 w-3.5 text-gray-400" />
+                             <p>{item.date}</p>
+                           </div>
+                         </div>
+                       </div>
+                     </li>
+                   ))}
+                 </ul>
+               ) : (
+                 <div className="p-12 text-center text-gray-500 bg-gray-50">
+                   <div className="inline-block p-4 rounded-full bg-white mb-3 shadow-sm">
+                      <Clock className="w-8 h-8 text-gray-300" />
+                   </div>
+                   <p className="text-lg font-medium">No hay novedades recientes para mostrar.</p>
+                 </div>
+               )}
+             </div>
            </div>
         </div>
       </div>

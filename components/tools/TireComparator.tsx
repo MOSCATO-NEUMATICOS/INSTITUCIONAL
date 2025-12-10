@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Activity, FileText, CheckCircle, Trash2, Plus, XCircle } from 'lucide-react';
+import { Activity, FileText, CheckCircle, Trash2, Plus, XCircle, HelpCircle, X } from 'lucide-react';
 
 // Tire Constants
 const TIRE_WIDTHS = [135, 145, 155, 165, 175, 185, 195, 205, 215, 225, 235, 245, 255, 265, 275, 285, 295, 305, 315, 325, 335];
@@ -28,6 +28,7 @@ export const TireComparator: React.FC = () => {
     { id: '1', width: '', profile: '', rim: '' }
   ]);
   const [showTireReport, setShowTireReport] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const calculateDiameter = (t: TireData): CalculatedTire | null => {
     const w = parseFloat(t.width);
@@ -89,15 +90,46 @@ export const TireComparator: React.FC = () => {
               <p className="text-sm text-gray-500">Calculadora de equivalencias y tolerancia (±3%)</p>
             </div>
           </div>
-          <button 
-            onClick={() => setShowTireReport(!showTireReport)}
-            disabled={!patternCalculated}
-            className="hidden md:flex items-center text-sm font-semibold text-brand-600 hover:text-brand-800 bg-brand-50 px-4 py-2 rounded-lg border border-brand-200 transition-colors"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            {showTireReport ? 'Ocultar Reporte' : 'Ver Reporte'}
-          </button>
+          <div className="flex space-x-2">
+            {/* Standardized Help Button (Brand/Blue Theme) */}
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              className="flex items-center text-sm font-semibold text-brand-600 hover:text-brand-800 bg-brand-50 px-3 py-2 rounded-md border border-brand-100 hover:border-brand-200 transition-colors"
+              title="Ayuda técnica"
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Ayuda
+            </button>
+            <button 
+              onClick={() => setShowTireReport(!showTireReport)}
+              disabled={!patternCalculated}
+              className="hidden md:flex items-center text-sm font-semibold text-gray-600 hover:text-gray-800 bg-gray-50 px-4 py-2 rounded-md border border-gray-200 transition-colors"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              {showTireReport ? 'Ocultar Reporte' : 'Ver Reporte'}
+            </button>
+          </div>
         </div>
+
+        {/* HELP SECTION */}
+        {showHelp && (
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4 animate-fade-in relative">
+            <button 
+              onClick={() => setShowHelp(false)}
+              className="absolute top-2 right-2 text-yellow-500 hover:text-yellow-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h4 className="text-sm font-bold text-yellow-900 mb-2">Tolerancia Técnica (±3%)</h4>
+            <p className="text-xs text-yellow-800 mb-2">
+              Se considera una equivalencia segura cuando la diferencia de diámetro total entre el neumático original y el nuevo no supera el 3%.
+            </p>
+            <ul className="text-xs text-yellow-800 space-y-1 list-disc list-inside">
+              <li><strong>Riesgos fuera de tolerancia:</strong> Lectura errónea del velocímetro, mal funcionamiento del ABS, mayor consumo de combustible y posibles roces con la carrocería.</li>
+              <li>Asegúrese siempre de que el índice de carga y velocidad sea igual o superior al original.</li>
+            </ul>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-8 mt-6">
           

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Timer, Car, Plus, Trash2, Clock, AlertCircle, Search, RotateCcw, CheckCircle2, Percent, DollarSign, Calculator } from 'lucide-react';
+import { Timer, Car, Plus, Trash2, Clock, AlertCircle, Search, RotateCcw, CheckCircle2, Percent, DollarSign, Calculator, HelpCircle, X } from 'lucide-react';
 
 // --- DATA CATALOG (Updated) ---
 const CATALOG = {
@@ -280,6 +280,7 @@ export const LaborTime: React.FC = () => {
   const [synergyDiscount, setSynergyDiscount] = useState<number>(0);
   const [partSearchTerm, setPartSearchTerm] = useState<string>('');
   const [hourlyRate, setHourlyRate] = useState<number>(0);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Auto-calculate general synergy discount based on number of jobs
   useEffect(() => {
@@ -587,15 +588,49 @@ export const LaborTime: React.FC = () => {
               <p className="text-sm text-gray-500">Estimación de mano de obra según estándares de fábrica.</p>
             </div>
           </div>
-          <button 
-            onClick={handleReset}
-            className="flex items-center text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors bg-gray-50 px-3 py-2 rounded-md border border-gray-200 hover:bg-red-50 hover:border-red-200"
-            title="Reiniciar todo"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Limpiar
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              className="flex items-center text-sm font-semibold text-brand-600 hover:text-brand-800 transition-colors bg-brand-50 px-3 py-2 rounded-md border border-brand-100 hover:border-brand-200"
+              title="Ayuda / Instrucciones"
+            >
+              <HelpCircle className="w-4 h-4 mr-2" />
+              Ayuda
+            </button>
+            <button 
+              onClick={handleReset}
+              className="flex items-center text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors bg-gray-50 px-3 py-2 rounded-md border border-gray-200 hover:bg-red-50 hover:border-red-200"
+              title="Reiniciar todo"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Limpiar
+            </button>
+          </div>
         </div>
+
+        {/* --- HELP SECTION --- */}
+        {showHelp && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in relative">
+            <button 
+              onClick={() => setShowHelp(false)}
+              className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              ¿Cómo funciona la Sinergia Inteligente?
+            </h4>
+            <p className="text-xs text-blue-700 mb-2">
+              El sistema detecta automáticamente cuando se realizan trabajos superpuestos en el mismo lado del vehículo y descuenta el tiempo duplicado.
+            </p>
+            <ul className="text-xs text-blue-600 list-disc list-inside space-y-1 ml-1">
+              <li><strong>Ejemplo 1:</strong> Si cambias <em>Amortiguadores</em>, el cambio de <em>Bieletas</em> se cobra al 50% (ya que están accesibles).</li>
+              <li><strong>Ejemplo 2:</strong> Si cambias <em>Axiales</em> o <em>Amortiguadores</em>, el cambio de <em>Extremos</em> es GRATIS (0 hs) porque es parte del mismo desarme.</li>
+              <li><strong>Ejemplo 3:</strong> Si cambias la <em>Parrilla Completa</em>, la mano de obra de la <em>Rótula</em> queda bonificada.</li>
+            </ul>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -855,11 +890,11 @@ export const LaborTime: React.FC = () => {
                        </label>
                        <div className="relative rounded-md shadow-sm">
                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                           <DollarSign className="h-4 w-4 text-white" />
+                           <DollarSign className="h-4 w-4 text-gray-400" />
                          </div>
                          <input
                            type="number"
-                           className="focus:ring-brand-500 focus:border-brand-500 block w-full pl-9 sm:text-sm border-gray-600 rounded-md py-2 font-bold bg-gray-700 text-white placeholder-gray-400"
+                           className="focus:ring-brand-500 focus:border-brand-500 block w-full pl-9 sm:text-sm border-gray-300 rounded-md py-2 font-bold bg-white text-gray-900 placeholder-gray-400 border"
                            placeholder="0"
                            value={hourlyRate || ''}
                            onChange={(e) => setHourlyRate(parseFloat(e.target.value))}

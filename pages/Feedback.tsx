@@ -27,7 +27,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
       const newItem: FeedbackItem = {
         id: Date.now().toString(),
         timestamp: Date.now(),
-        date: new Date().toLocaleString('es-AR'),
+        date: new Date().toLocaleString('es-AR', { hour12: false }), // Force 24h format
         isAnonymous,
         // FIX: Firestore falla si enviamos 'undefined'. Si es anónimo, enviamos explícitamente el string 'Anónimo'.
         name: isAnonymous ? 'Anónimo' : name, 

@@ -6,7 +6,9 @@ import { Manuals } from './pages/Manuals';
 import { Tools } from './pages/Tools';
 import { Feedback } from './pages/Feedback';
 import { Admin } from './pages/Admin';
-import { Page, Manual, NewsItem, FeedbackItem } from './types';
+import { Metrics } from './pages/Metrics';
+import { Courses } from './pages/Courses';
+import { Page, Manual, NewsItem, FeedbackItem, RecommendedCourse, EmployeeCourse, IpAlias, Supplier } from './types';
 import { storageService } from './services/storage';
 
 function App() {
@@ -17,20 +19,29 @@ function App() {
   const [manuals, setManuals] = useState<Manual[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
+  const [ipAliases, setIpAliases] = useState<IpAlias[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   // --- INITIAL DATA LOAD (Async) ---
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [m, n, f] = await Promise.all([
+        // Record visit for analytics
+        storageService.recordVisit();
+
+        const [m, n, f, i, s] = await Promise.all([
           storageService.getManuals(),
           storageService.getNews(),
-          storageService.getFeedback()
+          storageService.getFeedback(),
+          storageService.getIpAliases(),
+          storageService.getSuppliers()
         ]);
         setManuals(m);
         setNews(n);
         setFeedbackItems(f);
+        setIpAliases(i);
+        setSuppliers(s);
       } catch (error) {
         console.error("Error loading data", error);
       } finally {
@@ -64,6 +75,15 @@ function App() {
     setNews(updated);
   };
 
+  const handleUpdateNews = async (updatedItem: NewsItem) => {
+    // Optimistic
+    setNews(news.map(n => n.id === updatedItem.id ? updatedItem : n));
+    await storageService.updateNews(updatedItem);
+    // Sync
+    const updated = await storageService.getNews();
+    setNews(updated);
+  };
+
   const handleDeleteNews = async (id: string) => {
     setNews(news.filter(n => n.id !== id));
     await storageService.deleteNews(id);
@@ -81,8 +101,47 @@ function App() {
     await storageService.deleteFeedback(id);
   };
 
+  const handleAddIpAlias = async (newAlias: IpAlias) => {
+    setIpAliases([newAlias, ...ipAliases]);
+    await storageService.addIpAlias(newAlias);
+    const updated = await storageService.getIpAliases();
+    setIpAliases(updated);
+  };
+
+  const handleDeleteIpAlias = async (id: string) => {
+    setIpAliases(ipAliases.filter(a => a.id !== id));
+    await storageService.deleteIpAlias(id);
+  };
+
+  const handleAddSupplier = async (newSupplier: Supplier) => {
+    setSuppliers([newSupplier, ...suppliers]);
+    await storageService.addSupplier(newSupplier);
+    const updated = await storageService.getSuppliers();
+    setSuppliers(updated);
+  };
+
+  const handleUpdateSupplier = async (updatedSupplier: Supplier) => {
+    setSuppliers(suppliers.map(s => s.id === updatedSupplier.id ? updatedSupplier : s));
+    await storageService.updateSupplier(updatedSupplier);
+    const updated = await storageService.getSuppliers();
+    setSuppliers(updated);
+  };
+
+  const handleDeleteSupplier = async (id: string) => {
+    setSuppliers(suppliers.filter(s => s.id !== id));
+    await storageService.deleteSupplier(id);
+  };
+
   // Import Data (Local fallback mainly, or bulk upload to cloud)
-  const handleImportData = async (data: { manuals?: Manual[], news?: NewsItem[], feedbackItems?: FeedbackItem[] }) => {
+  const handleImportData = async (data: { 
+    manuals?: Manual[], 
+    news?: NewsItem[], 
+    feedbackItems?: FeedbackItem[], 
+    recommendedCourses?: RecommendedCourse[],
+    employeeCourses?: EmployeeCourse[],
+    ipAliases?: IpAlias[],
+    suppliers?: Supplier[]
+  }) => {
     if (data.manuals) {
        for (const m of data.manuals) await storageService.addManual(m);
        const updated = await storageService.getManuals();
@@ -97,6 +156,22 @@ function App() {
        for (const f of data.feedbackItems) await storageService.addFeedback(f);
        const updated = await storageService.getFeedback();
        setFeedbackItems(updated);
+    }
+    if (data.recommendedCourses) {
+        for (const c of data.recommendedCourses) await storageService.addRecommendedCourse(c);
+    }
+    if (data.employeeCourses) {
+        for (const ec of data.employeeCourses) await storageService.addEmployeeCourse(ec);
+    }
+    if (data.ipAliases) {
+        for (const ia of data.ipAliases) await storageService.addIpAlias(ia);
+        const updated = await storageService.getIpAliases();
+        setIpAliases(updated);
+    }
+    if (data.suppliers) {
+        for (const s of data.suppliers) await storageService.addSupplier(s);
+        const updated = await storageService.getSuppliers();
+        setSuppliers(updated);
     }
   };
 
@@ -114,8 +189,12 @@ function App() {
         return <Home news={news} />;
       case Page.MANUALS:
         return <Manuals manuals={manuals} />;
+      case Page.COURSES:
+        return <Courses />;
       case Page.TOOLS:
-        return <Tools onNavigate={setCurrentPage} />;
+        return <Tools onNavigate={setCurrentPage} suppliers={suppliers} />;
+      case Page.METRICS:
+        return <Metrics />;
       case Page.FEEDBACK:
         return <Feedback onFeedbackSubmit={handleAddFeedback} />;
       case Page.ADMIN:
@@ -124,11 +203,19 @@ function App() {
             manuals={manuals} 
             news={news}
             feedbackItems={feedbackItems}
+            ipAliases={ipAliases}
+            suppliers={suppliers}
             onAddManual={handleAddManual}
             onDeleteManual={handleDeleteManual}
             onAddNews={handleAddNews}
+            onUpdateNews={handleUpdateNews}
             onDeleteNews={handleDeleteNews}
             onDeleteFeedback={handleDeleteFeedback}
+            onAddIpAlias={handleAddIpAlias}
+            onDeleteIpAlias={handleDeleteIpAlias}
+            onAddSupplier={handleAddSupplier}
+            onUpdateSupplier={handleUpdateSupplier}
+            onDeleteSupplier={handleDeleteSupplier}
             onImportData={handleImportData}
           />
         );

@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Page } from '../types';
-import { Menu, X, BookOpen, Wrench, MessageSquare, Home, Lock } from 'lucide-react';
+import { Menu, X, BookOpen, Wrench, MessageSquare, Home, Lock, BarChart3, GraduationCap } from 'lucide-react';
 
 interface NavbarProps {
   currentPage: Page;
@@ -13,7 +14,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
   const navItems = [
     { page: Page.HOME, label: 'Institucional', icon: Home },
     { page: Page.MANUALS, label: 'Manuales', icon: BookOpen },
+    { page: Page.COURSES, label: 'Cursos', icon: GraduationCap },
     { page: Page.TOOLS, label: 'Herramientas', icon: Wrench },
+    { page: Page.METRICS, label: 'Métricas', icon: BarChart3 },
     { page: Page.FEEDBACK, label: 'Buzón', icon: MessageSquare },
   ];
 

@@ -1,7 +1,7 @@
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
-import { Manual, NewsItem, FeedbackItem, ManualCategory } from '../types';
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, limit, updateDoc } from 'firebase/firestore';
+import { Manual, NewsItem, FeedbackItem, ManualCategory, VisitRecord, EmployeeCourse, RecommendedCourse, IpAlias, Supplier } from '../types';
 
 // --- CONFIGURACIÓN DE FIREBASE ---
 const firebaseConfig = {
@@ -35,7 +35,11 @@ if (isFirebaseConfigured) {
 const STORAGE_KEYS = {
   MANUALS: 'moscato_portal_manuals_v2',
   NEWS: 'moscato_portal_news_v2',
-  FEEDBACK: 'moscato_portal_feedback_v2'
+  FEEDBACK: 'moscato_portal_feedback_v2',
+  EMPLOYEE_COURSES: 'moscato_portal_emp_courses_v1',
+  RECOMMENDED_COURSES: 'moscato_portal_rec_courses_v1',
+  IP_ALIASES: 'moscato_portal_ip_aliases_v1',
+  SUPPLIERS: 'moscato_portal_suppliers_v1',
 };
 
 // --- INITIAL DATA FALLBACK ---
@@ -507,6 +511,18 @@ Abrir contacto → Editar → Agregar código → Guardar.
   }
 ];
 
+// --- INITIAL RECOMMENDATIONS ---
+const INITIAL_RECOMMENDED: RecommendedCourse[] = [
+  { id: '1', title: 'Goodyear Learning Center', platform: 'Goodyear', description: 'Capacitación oficial sobre productos y tecnología de neumáticos.', link: 'https://www.goodyeartrucktires.com/learning-center/' },
+  { id: '2', title: 'Curso de Mecánica Básica', platform: 'YouTube', description: 'Fundamentos de tren delantero y frenos.', link: 'https://www.youtube.com' }
+];
+
+const INITIAL_SUPPLIERS: Supplier[] = [
+  { id: '1', name: 'Corven', discountChain: '35+10', margin: 40, marginBase: 'cost', addIva: true },
+  { id: '2', name: 'Monroe', discountChain: '40+5', margin: 45, marginBase: 'cost', addIva: true },
+  { id: '3', name: 'Fric-Rot', discountChain: '30+10+5', margin: 40, marginBase: 'cost', addIva: true },
+];
+
 // --- HELPERS ---
 function getLocal<T>(key: string, defaultData: T): T {
   try {
@@ -610,6 +626,19 @@ export const storageService = {
     return item;
   },
 
+  async updateNews(item: NewsItem): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = item;
+        await updateDoc(doc(db, "news", id), data);
+        return;
+      } catch (e) { handleFirebaseError(e, 'updateNews'); }
+    }
+    const current = getLocal<NewsItem[]>(STORAGE_KEYS.NEWS, []);
+    const updated = current.map(n => n.id === item.id ? item : n);
+    setLocal(STORAGE_KEYS.NEWS, updated);
+  },
+
   async deleteNews(id: string): Promise<void> {
     if (isFirebaseConfigured && db) {
       try {
@@ -659,6 +688,239 @@ export const storageService = {
     }
     const current = getLocal<FeedbackItem[]>(STORAGE_KEYS.FEEDBACK, []);
     setLocal(STORAGE_KEYS.FEEDBACK, current.filter(f => f.id !== id));
+  },
+
+  // --- EMPLOYEE COURSES ---
+  async getEmployeeCourses(): Promise<EmployeeCourse[]> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const q = query(collection(db, "employee_courses"), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EmployeeCourse));
+      } catch (e) { handleFirebaseError(e, 'getEmployeeCourses'); }
+    }
+    return getLocal<EmployeeCourse[]>(STORAGE_KEYS.EMPLOYEE_COURSES, []);
+  },
+
+  async addEmployeeCourse(course: EmployeeCourse): Promise<EmployeeCourse> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = course;
+        const docRef = await addDoc(collection(db, "employee_courses"), data);
+        return { ...course, id: docRef.id };
+      } catch (e) { handleFirebaseError(e, 'addEmployeeCourse'); }
+    }
+    const current = getLocal<EmployeeCourse[]>(STORAGE_KEYS.EMPLOYEE_COURSES, []);
+    setLocal(STORAGE_KEYS.EMPLOYEE_COURSES, [course, ...current]);
+    return course;
+  },
+
+  async updateEmployeeCourse(course: EmployeeCourse): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = course;
+        await updateDoc(doc(db, "employee_courses", id), data);
+        return;
+      } catch (e) { handleFirebaseError(e, 'updateEmployeeCourse'); }
+    }
+    const current = getLocal<EmployeeCourse[]>(STORAGE_KEYS.EMPLOYEE_COURSES, []);
+    const updated = current.map(c => c.id === course.id ? course : c);
+    setLocal(STORAGE_KEYS.EMPLOYEE_COURSES, updated);
+  },
+
+  async deleteEmployeeCourse(id: string): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, "employee_courses", id));
+        return;
+      } catch(e) { handleFirebaseError(e, 'deleteEmployeeCourse'); }
+    }
+    const current = getLocal<EmployeeCourse[]>(STORAGE_KEYS.EMPLOYEE_COURSES, []);
+    setLocal(STORAGE_KEYS.EMPLOYEE_COURSES, current.filter(c => c.id !== id));
+  },
+
+  // --- RECOMMENDED COURSES ---
+  async getRecommendedCourses(): Promise<RecommendedCourse[]> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const q = query(collection(db, "recommended_courses"));
+        const querySnapshot = await getDocs(q);
+        const courses = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RecommendedCourse));
+        return courses.length > 0 ? courses : getLocal(STORAGE_KEYS.RECOMMENDED_COURSES, INITIAL_RECOMMENDED);
+      } catch (e) { handleFirebaseError(e, 'getRecommendedCourses'); return getLocal(STORAGE_KEYS.RECOMMENDED_COURSES, INITIAL_RECOMMENDED); }
+    }
+    return getLocal(STORAGE_KEYS.RECOMMENDED_COURSES, INITIAL_RECOMMENDED);
+  },
+
+  async addRecommendedCourse(course: RecommendedCourse): Promise<RecommendedCourse> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = course;
+        const docRef = await addDoc(collection(db, "recommended_courses"), data);
+        return { ...course, id: docRef.id };
+      } catch (e) { handleFirebaseError(e, 'addRecommendedCourse'); }
+    }
+    const current = getLocal<RecommendedCourse[]>(STORAGE_KEYS.RECOMMENDED_COURSES, INITIAL_RECOMMENDED);
+    setLocal(STORAGE_KEYS.RECOMMENDED_COURSES, [course, ...current]);
+    return course;
+  },
+
+  async updateRecommendedCourse(course: RecommendedCourse): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = course;
+        await updateDoc(doc(db, "recommended_courses", id), data);
+        return;
+      } catch (e) { handleFirebaseError(e, 'updateRecommendedCourse'); }
+    }
+    const current = getLocal<RecommendedCourse[]>(STORAGE_KEYS.RECOMMENDED_COURSES, INITIAL_RECOMMENDED);
+    const updated = current.map(c => c.id === course.id ? course : c);
+    setLocal(STORAGE_KEYS.RECOMMENDED_COURSES, updated);
+  },
+
+  async deleteRecommendedCourse(id: string): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, "recommended_courses", id));
+        return;
+      } catch(e) { handleFirebaseError(e, 'deleteRecommendedCourse'); }
+    }
+    const current = getLocal<RecommendedCourse[]>(STORAGE_KEYS.RECOMMENDED_COURSES, INITIAL_RECOMMENDED);
+    setLocal(STORAGE_KEYS.RECOMMENDED_COURSES, current.filter(c => c.id !== id));
+  },
+
+  // --- IP ALIASES ---
+  async getIpAliases(): Promise<IpAlias[]> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const q = query(collection(db, "ip_aliases"));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IpAlias));
+      } catch (e) { handleFirebaseError(e, 'getIpAliases'); }
+    }
+    return getLocal<IpAlias[]>(STORAGE_KEYS.IP_ALIASES, []);
+  },
+
+  async addIpAlias(alias: IpAlias): Promise<IpAlias> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = alias;
+        const docRef = await addDoc(collection(db, "ip_aliases"), data);
+        return { ...alias, id: docRef.id };
+      } catch (e) { handleFirebaseError(e, 'addIpAlias'); }
+    }
+    const current = getLocal<IpAlias[]>(STORAGE_KEYS.IP_ALIASES, []);
+    setLocal(STORAGE_KEYS.IP_ALIASES, [alias, ...current]);
+    return alias;
+  },
+
+  async deleteIpAlias(id: string): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, "ip_aliases", id));
+        return;
+      } catch (e) { handleFirebaseError(e, 'deleteIpAlias'); }
+    }
+    const current = getLocal<IpAlias[]>(STORAGE_KEYS.IP_ALIASES, []);
+    setLocal(STORAGE_KEYS.IP_ALIASES, current.filter(a => a.id !== id));
+  },
+
+  // --- SUPPLIERS (PROVEEDORES) ---
+  async getSuppliers(): Promise<Supplier[]> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const q = query(collection(db, "suppliers"));
+        const querySnapshot = await getDocs(q);
+        const items = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Supplier));
+        return items.length > 0 ? items : getLocal(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS);
+      } catch (e) { handleFirebaseError(e, 'getSuppliers'); return getLocal(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS); }
+    }
+    return getLocal<Supplier[]>(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS);
+  },
+
+  async addSupplier(supplier: Supplier): Promise<Supplier> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = supplier;
+        const docRef = await addDoc(collection(db, "suppliers"), data);
+        return { ...supplier, id: docRef.id };
+      } catch (e) { handleFirebaseError(e, 'addSupplier'); }
+    }
+    const current = getLocal<Supplier[]>(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS);
+    setLocal(STORAGE_KEYS.SUPPLIERS, [supplier, ...current]);
+    return supplier;
+  },
+
+  async updateSupplier(supplier: Supplier): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = supplier;
+        await updateDoc(doc(db, "suppliers", id), data);
+        return;
+      } catch (e) { handleFirebaseError(e, 'updateSupplier'); }
+    }
+    const current = getLocal<Supplier[]>(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS);
+    const updated = current.map(s => s.id === supplier.id ? supplier : s);
+    setLocal(STORAGE_KEYS.SUPPLIERS, updated);
+  },
+
+  async deleteSupplier(id: string): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, "suppliers", id));
+        return;
+      } catch(e) { handleFirebaseError(e, 'deleteSupplier'); }
+    }
+    const current = getLocal<Supplier[]>(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS);
+    setLocal(STORAGE_KEYS.SUPPLIERS, current.filter(s => s.id !== id));
+  },
+
+  // --- VISIT COUNTER (ANALYTICS) - CLOUD ONLY ---
+  async recordVisit(): Promise<void> {
+    let ipAddress = 'Desconocido';
+    try {
+        // Fetch public IP address
+        const response = await fetch('https://api.ipify.org?format=json');
+        if (response.ok) {
+            const data = await response.json();
+            ipAddress = data.ip;
+        }
+    } catch (error) {
+        console.warn("Error fetching IP:", error);
+    }
+
+    const visitData = {
+      timestamp: Date.now(),
+      dateString: new Date().toLocaleDateString('es-AR'),
+      deviceInfo: navigator.userAgent,
+      ip: ipAddress
+    };
+
+    if (isFirebaseConfigured && db) {
+      try {
+        await addDoc(collection(db, "visits"), visitData);
+        console.log("Visita registrada en Firebase");
+      } catch (e) {
+        console.error("Error al registrar visita en Firebase:", e);
+      }
+    }
+    // NOT saving to localStorage to avoid data fragmentation and misleading stats.
+  },
+
+  async getVisits(): Promise<VisitRecord[]> {
+    if (isFirebaseConfigured && db) {
+      try {
+        // Increased limit for better historical data in Admin
+        const q = query(collection(db, "visits"), orderBy("timestamp", "desc"), limit(2000));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VisitRecord));
+      } catch (e) {
+        handleFirebaseError(e, 'getVisits');
+        return [];
+      }
+    }
+    // Return empty array if not connected to avoid showing local-only data which is incorrect
+    return [];
   },
 
   // --- HELPERS ---

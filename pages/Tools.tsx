@@ -1,31 +1,36 @@
 
 import React, { useState } from 'react';
-import { Timer, Wrench, ArrowRight, Activity, DollarSign, Database, ChevronRight, Car } from 'lucide-react';
+import { Timer, Wrench, ArrowRight, Activity, DollarSign, Database, ChevronRight, Car, Calculator } from 'lucide-react';
 import { OEGuide } from '../components/tools/OEGuide';
 import { UnitConverter } from '../components/tools/UnitConverter';
 import { CashBox } from '../components/tools/CashBox';
 import { TireComparator } from '../components/tools/TireComparator';
 import { LaborTime } from '../components/tools/LaborTime';
 import { LicensePlateLookup } from '../components/tools/LicensePlateLookup';
-import { Page } from '../types';
+import { CostCalculator } from '../components/tools/CostCalculator';
+import { Page, Supplier } from '../types';
 
-type ToolId = 'oe_guide' | 'converter' | 'cash_box' | 'tire_comparator' | 'plate_lookup' | 'labor_time';
+type ToolId = 'oe_guide' | 'converter' | 'cash_box' | 'tire_comparator' | 'plate_lookup' | 'labor_time' | 'cost_calculator';
 
+// Menu ordered alphabetically by label for better UX
 const TOOLS_MENU = [
-  { id: 'oe_guide', label: 'Guía Equipamiento Original', icon: Database, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-600' },
   { id: 'plate_lookup', label: 'Año por Patente', icon: Car, color: 'text-indigo-600', bg: 'bg-indigo-100', border: 'border-indigo-600' },
-  { id: 'converter', label: 'Convertidor de Presión', icon: Wrench, color: 'text-brand-600', bg: 'bg-brand-100', border: 'border-brand-600' },
   { id: 'cash_box', label: 'Arqueo de Caja', icon: DollarSign, color: 'text-green-600', bg: 'bg-green-100', border: 'border-green-600' },
-  { id: 'tire_comparator', label: 'Comparador Neumáticos', icon: Activity, color: 'text-gold-600', bg: 'bg-gold-100', border: 'border-gold-600' },
+  { id: 'cost_calculator', label: 'Calculadora de Costos', icon: Calculator, color: 'text-green-700', bg: 'bg-green-100', border: 'border-green-600' },
   { id: 'labor_time', label: 'Calculadora de Tiempos', icon: Timer, color: 'text-gray-600', bg: 'bg-gray-100', border: 'border-gray-300' },
+  { id: 'tire_comparator', label: 'Comparador Neumáticos', icon: Activity, color: 'text-gold-600', bg: 'bg-gold-100', border: 'border-gold-600' },
+  { id: 'converter', label: 'Convertidor de Presión', icon: Wrench, color: 'text-brand-600', bg: 'bg-brand-100', border: 'border-brand-600' },
+  { id: 'oe_guide', label: 'Guía Equipamiento Original', icon: Database, color: 'text-blue-600', bg: 'bg-blue-100', border: 'border-blue-600' },
 ] as const;
 
 interface ToolsProps {
   onNavigate: (page: Page) => void;
+  suppliers?: Supplier[];
 }
 
-export const Tools: React.FC<ToolsProps> = ({ onNavigate }) => {
-  const [activeTool, setActiveTool] = useState<ToolId>('oe_guide');
+export const Tools: React.FC<ToolsProps> = ({ onNavigate, suppliers = [] }) => {
+  // Keeps 'labor_time' as default as it's likely the most used, but menu is sorted alphabetically
+  const [activeTool, setActiveTool] = useState<ToolId>('labor_time');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -46,7 +51,7 @@ export const Tools: React.FC<ToolsProps> = ({ onNavigate }) => {
               {TOOLS_MENU.map((tool) => (
                 <button
                   key={tool.id}
-                  onClick={() => setActiveTool(tool.id)}
+                  onClick={() => setActiveTool(tool.id as ToolId)}
                   className={`flex items-center w-full px-4 py-3 text-sm font-bold rounded-lg transition-all ${
                     activeTool === tool.id
                       ? `${tool.bg} ${tool.color} ring-1 ring-inset ${tool.border.replace('border', 'ring')}`
@@ -80,6 +85,7 @@ export const Tools: React.FC<ToolsProps> = ({ onNavigate }) => {
           {activeTool === 'cash_box' && <CashBox />}
           {activeTool === 'tire_comparator' && <TireComparator />}
           {activeTool === 'labor_time' && <LaborTime />}
+          {activeTool === 'cost_calculator' && <CostCalculator suppliers={suppliers} />}
         </div>
       </div>
     </div>
