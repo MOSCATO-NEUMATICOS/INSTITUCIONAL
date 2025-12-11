@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Calculator, DollarSign, RefreshCcw, Tag, CheckSquare, Square, X, Percent, Plus, Trophy, TrendingUp } from 'lucide-react';
+import { Calculator, RefreshCcw, Tag, CheckSquare, Square, X, Percent, Plus, Trophy, TrendingUp, Star, ArrowUpCircle, BadgeCheck } from 'lucide-react';
 import { Supplier } from '../../types';
 
 interface CostCalculatorProps {
@@ -130,10 +130,16 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
     });
   }, [activeSuppliers, prices, adjustments]);
 
-  // Find minimum valid cost
-  const minCost = useMemo(() => {
-    const validCosts = calculatedRows.filter(r => r.result.isValid).map(r => r.result.cost);
-    return validCosts.length > 0 ? Math.min(...validCosts) : 0;
+  // Calculate Comparison Stats (Min Cost, Max Margin, Max Price)
+  const stats = useMemo(() => {
+    const validRows = calculatedRows.filter(r => r.result.isValid);
+    if (validRows.length === 0) return { minCost: 0, maxMargin: -Infinity, maxPrice: 0 };
+
+    return {
+      minCost: Math.min(...validRows.map(r => r.result.cost)),
+      maxMargin: Math.max(...validRows.map(r => r.result.realMargin)),
+      maxPrice: Math.max(...validRows.map(r => r.result.salePrice))
+    };
   }, [calculatedRows]);
 
   return (
@@ -196,6 +202,15 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
                  <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                    2. Ingrese Precios de Lista
                  </h4>
+                 
+                 {/* Legend */}
+                 {stats.maxPrice > 0 && (
+                   <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wide">
+                      <span className="flex items-center text-green-700"><Trophy className="w-3 h-3 mr-1" /> Mejor Costo</span>
+                      <span className="flex items-center text-blue-700"><BadgeCheck className="w-3 h-3 mr-1" /> Mejor Margen</span>
+                      <span className="flex items-center text-yellow-700"><Star className="w-3 h-3 mr-1" /> Precio Sugerido</span>
+                   </div>
+                 )}
               </div>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-800 text-white">
@@ -204,19 +219,19 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
                       Proveedor
                     </th>
                     {/* Increased width for Price Column */}
-                    <th scope="col" className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[20%] min-w-[140px] bg-gray-700 border-l border-gray-600">
+                    <th scope="col" className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[18%] min-w-[140px] bg-gray-700 border-l border-gray-600">
                       Precio Lista
                     </th>
-                    <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[10%] hidden sm:table-cell">
+                    <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[8%] hidden sm:table-cell">
                       Desc.
                     </th>
-                    <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[12%] border-l border-gray-700">
-                      Ajuste Costo
+                    <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[10%] border-l border-gray-700">
+                      Ajuste
                     </th>
                     <th scope="col" className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider w-[18%]">
                       Costo Neto
                     </th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider w-[20%] bg-green-700">
+                    <th scope="col" className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider w-[22%] bg-green-700">
                       Precio Venta
                     </th>
                     <th className="w-8"></th>
@@ -227,24 +242,25 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
                     const { id, name, discountChain, addIva, margin, marginBase, priceInput, adjustmentInput, result } = row;
                     const { cost, salePrice, realMargin, isValid } = result;
                     
-                    // Determine if this is the winner (allow tolerance for float precision)
-                    const isBestPrice = isValid && minCost > 0 && Math.abs(cost - minCost) < 0.01;
+                    // Comparators (with float tolerance)
+                    const isLowestCost = isValid && stats.minCost > 0 && Math.abs(cost - stats.minCost) < 0.01;
+                    const isBestMargin = isValid && stats.maxMargin > -Infinity && Math.abs(realMargin - stats.maxMargin) < 0.01;
+                    const isHighestPrice = isValid && stats.maxPrice > 0 && Math.abs(salePrice - stats.maxPrice) < 0.01;
 
                     return (
                       <tr 
                         key={id} 
-                        className={`transition-colors group ${isBestPrice ? 'bg-green-50 ring-2 ring-inset ring-green-500 z-10 relative' : 'hover:bg-gray-50'}`}
+                        className={`transition-colors group hover:bg-gray-50`}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap">
+                        <td className="px-4 py-3 whitespace-nowrap align-middle">
                           <div className="flex flex-col">
-                            <div className="flex items-center">
-                              {isBestPrice && <Trophy className="w-4 h-4 text-yellow-500 mr-1 fill-current animate-pulse" />}
-                              <span className={`text-sm font-bold ${isBestPrice ? 'text-green-800' : 'text-gray-900'}`}>{name}</span>
-                            </div>
+                            <span className="text-sm font-bold text-gray-900">{name}</span>
                             <span className="text-[10px] text-gray-500 sm:hidden">Desc: {discountChain}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200">
+                        
+                        {/* Input List Price */}
+                        <td className="px-4 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200 align-middle">
                           <div className="relative rounded-md shadow-sm">
                             <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
                               <span className="text-gray-400 sm:text-sm">$</span>
@@ -253,7 +269,6 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
                               type="number"
                               value={priceInput}
                               onChange={(e) => handlePriceChange(id, e.target.value)}
-                              // Added classes to remove spin buttons and adjusted padding (Spin buttons removed here)
                               className="focus:ring-green-500 focus:border-green-500 block w-full pl-6 pr-8 sm:text-sm border-gray-300 rounded-md py-2 bg-white text-gray-900 font-bold border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               placeholder="0.00"
                             />
@@ -264,17 +279,19 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
                             )}
                           </div>
                         </td>
-                        <td className="px-2 py-3 whitespace-nowrap text-center text-xs text-gray-500 font-mono hidden sm:table-cell">
+                        
+                        {/* Discount Info */}
+                        <td className="px-2 py-3 whitespace-nowrap text-center text-xs text-gray-500 font-mono hidden sm:table-cell align-middle">
                           {discountChain}
                         </td>
+                        
                         {/* Adjustment Input */}
-                        <td className="px-2 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200">
+                        <td className="px-2 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200 align-middle">
                            <div className="relative rounded-md shadow-sm">
                             <input
                               type="number"
                               value={adjustmentInput}
                               onChange={(e) => handleAdjustmentChange(id, e.target.value)}
-                              // Spin buttons KEPT here (standard behavior)
                               className="focus:ring-green-500 focus:border-green-500 block w-full pr-6 sm:text-xs border-gray-300 rounded-md py-1.5 bg-white text-gray-900 font-medium text-center border"
                               placeholder="%"
                             />
@@ -283,32 +300,43 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
+                        
+                        {/* Calculated Net Cost */}
+                        <td className={`px-4 py-3 whitespace-nowrap text-right text-sm align-middle ${isLowestCost ? 'bg-green-50' : ''}`}>
                           {isValid ? (
                             <div className="flex flex-col items-end">
-                              <span className={`font-bold ${isBestPrice ? 'text-green-700 text-base' : 'text-gray-700'}`}>
+                              <span className={`font-bold ${isLowestCost ? 'text-green-700 text-base' : 'text-gray-700'}`}>
                                 {formatCurrency(cost)}
                               </span>
-                              {isBestPrice && <span className="text-[10px] font-bold text-green-600 bg-green-100 px-1 rounded">MEJOR PRECIO</span>}
+                              {isLowestCost && (
+                                <span className="text-[9px] font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full flex items-center mt-1 border border-green-200">
+                                  <Trophy className="w-3 h-3 mr-1" /> MEJOR COSTO
+                                </span>
+                              )}
                             </div>
                           ) : (
                             <span className="text-gray-300">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-right bg-green-50">
+                        
+                        {/* Calculated Sale Price */}
+                        <td className={`px-4 py-3 whitespace-nowrap text-right bg-green-50 align-middle ${isHighestPrice ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}>
                           {isValid ? (
                             <div className="flex flex-col items-end">
-                              <span className="text-lg font-extrabold text-green-700 leading-none">
+                              <span className={`leading-none ${isHighestPrice ? 'text-xl font-extrabold text-gray-900' : 'text-lg font-bold text-green-700'}`}>
                                 {formatCurrency(salePrice)}
                               </span>
                               
-                              <div className="flex flex-col items-end mt-1">
-                                <span className="text-[10px] text-gray-500">
-                                  Config: {margin}% ({marginBase === 'list' ? 's/Lista' : 's/Costo'})
+                              {isHighestPrice && (
+                                <span className="text-[10px] font-bold text-yellow-800 bg-yellow-200 px-2 py-0.5 rounded-full flex items-center mt-1 mb-1">
+                                  <Star className="w-3 h-3 mr-1 fill-current" /> PRECIO SUGERIDO
                                 </span>
-                                <span className="text-xs font-bold text-blue-600 flex items-center">
-                                  <TrendingUp className="w-3 h-3 mr-1" />
-                                  Real: {realMargin.toFixed(2)}%
+                              )}
+
+                              <div className="flex flex-col items-end mt-1 w-full border-t border-gray-200/50 pt-1">
+                                <span className={`text-xs font-bold flex items-center ${isBestMargin ? 'text-blue-600 bg-blue-50 px-1 rounded' : 'text-gray-500'}`}>
+                                  {isBestMargin && <BadgeCheck className="w-3 h-3 mr-1" />}
+                                  Mg. Real: {realMargin.toFixed(1)}%
                                 </span>
                               </div>
                             </div>
@@ -316,7 +344,8 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
                             <span className="text-gray-300">-</span>
                           )}
                         </td>
-                        <td className="px-2 py-3 text-center">
+                        
+                        <td className="px-2 py-3 text-center align-middle">
                            <button 
                              onClick={() => toggleSupplier(id)}
                              className="text-gray-300 hover:text-red-500 transition-colors"
