@@ -11,11 +11,41 @@ import { Courses } from './pages/Courses';
 import { Page, Manual, NewsItem, FeedbackItem, RecommendedCourse, EmployeeCourse, IpAlias, Supplier } from './types';
 import { storageService } from './services/storage';
 
+export type Theme = 'light' | 'dark' | 'system';
+
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>(Page.HOME);
   const [isLoading, setIsLoading] = useState(true);
   
-  // State
+  // Theme State - Always default to 'system' on load as requested
+  const [theme, setTheme] = useState<Theme>('system');
+
+  // Apply Theme Effect
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const systemQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const applyTheme = () => {
+      if (theme === 'dark' || (theme === 'system' && systemQuery.matches)) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    };
+
+    applyTheme();
+    // We update localStorage just for persistence during session if needed, 
+    // but on reload it will reset to 'system' due to useState('system')
+    localStorage.setItem('theme', theme);
+
+    // Listen for system changes if in system mode
+    if (theme === 'system') {
+      systemQuery.addEventListener('change', applyTheme);
+      return () => systemQuery.removeEventListener('change', applyTheme);
+    }
+  }, [theme]);
+
+  // State Data
   const [manuals, setManuals] = useState<Manual[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
@@ -54,11 +84,8 @@ function App() {
 
   // Handlers wrapped with Storage Service calls
   const handleAddManual = async (newManual: Manual) => {
-    // Optimistic UI update
     setManuals([newManual, ...manuals]);
-    // Persist
     await storageService.addManual(newManual);
-    // Reload to ensure sync (optional but safer for IDs from DB)
     const updated = await storageService.getManuals();
     setManuals(updated);
   };
@@ -76,10 +103,8 @@ function App() {
   };
 
   const handleUpdateNews = async (updatedItem: NewsItem) => {
-    // Optimistic
     setNews(news.map(n => n.id === updatedItem.id ? updatedItem : n));
     await storageService.updateNews(updatedItem);
-    // Sync
     const updated = await storageService.getNews();
     setNews(updated);
   };
@@ -92,6 +117,13 @@ function App() {
   const handleAddFeedback = async (newItem: FeedbackItem) => {
     setFeedbackItems([newItem, ...feedbackItems]);
     await storageService.addFeedback(newItem);
+    const updated = await storageService.getFeedback();
+    setFeedbackItems(updated);
+  };
+
+  const handleUpdateFeedback = async (updatedItem: FeedbackItem) => {
+    setFeedbackItems(feedbackItems.map(f => f.id === updatedItem.id ? updatedItem : f));
+    await storageService.updateFeedback(updatedItem);
     const updated = await storageService.getFeedback();
     setFeedbackItems(updated);
   };
@@ -132,7 +164,6 @@ function App() {
     await storageService.deleteSupplier(id);
   };
 
-  // Import Data (Local fallback mainly, or bulk upload to cloud)
   const handleImportData = async (data: { 
     manuals?: Manual[], 
     news?: NewsItem[], 
@@ -178,7 +209,7 @@ function App() {
   const renderPage = () => {
     if (isLoading) {
       return (
-        <div className="flex h-screen items-center justify-center bg-tire-pattern">
+        <div className="flex h-screen items-center justify-center bg-tire-pattern dark:bg-gray-900 transition-colors">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-brand-600"></div>
         </div>
       );
@@ -210,6 +241,7 @@ function App() {
             onAddNews={handleAddNews}
             onUpdateNews={handleUpdateNews}
             onDeleteNews={handleDeleteNews}
+            onUpdateFeedback={handleUpdateFeedback}
             onDeleteFeedback={handleDeleteFeedback}
             onAddIpAlias={handleAddIpAlias}
             onDeleteIpAlias={handleDeleteIpAlias}
@@ -225,8 +257,13 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-tire-pattern font-sans text-gray-900 flex flex-col">
-      <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
+    <div className="min-h-screen bg-tire-pattern dark:bg-gray-950 font-sans text-gray-900 dark:text-gray-100 flex flex-col transition-colors duration-300">
+      <Navbar 
+        currentPage={currentPage} 
+        onNavigate={setCurrentPage} 
+        theme={theme}
+        onThemeChange={setTheme}
+      />
       
       <main className="flex-grow">
         {renderPage()}

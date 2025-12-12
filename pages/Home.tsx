@@ -10,35 +10,49 @@ interface HomeProps {
 export const Home: React.FC<HomeProps> = ({ news }) => {
   const newsSectionRef = useRef<HTMLDivElement>(null);
   
-  // Logic to determine if a highlight is still valid (within 15 days)
-  const isActiveHighlight = (item: NewsItem) => {
-    if (!item.highlight) return false;
+  const getDaysDifference = (dateStr: string) => {
     try {
       // Date format is dd/mm/yyyy from storage
-      const [day, month, year] = item.date.split('/');
+      const [day, month, year] = dateStr.split('/');
       const itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       const now = new Date();
-      
-      // Calculate difference in days
       const diffTime = Math.abs(now.getTime() - itemDate.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      return diffDays <= 15; // Updated to 15 days
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     } catch (e) {
-      return false; // Fallback if date parse fails
+      return 0;
     }
   };
 
-  const highlightedNews = news.filter(isActiveHighlight);
-  const regularNews = news.filter(n => !isActiveHighlight(n));
+  // 1. Filter out expired news (Auto-delete logic)
+  const activeNews = news.filter(item => {
+    if (!item.autoDelete || !item.autoDeleteDuration) return true; // Keep if no auto-delete
+    const diffDays = getDaysDifference(item.date);
+    // Keep if difference is less than or equal to configured duration
+    return diffDays <= item.autoDeleteDuration;
+  });
+
+  // 2. Determine highlights based on custom duration
+  const isActiveHighlight = (item: NewsItem) => {
+    if (!item.highlight) return false;
+    
+    const diffDays = getDaysDifference(item.date);
+    // Use custom duration or default to 15 days
+    const duration = item.highlightDuration || 15;
+    
+    return diffDays <= duration;
+  };
+
+  const highlightedNews = activeNews.filter(isActiveHighlight);
+  // Regular news are those that are NOT highlighted (even if they have highlight=true but expired the duration)
+  const regularNews = activeNews.filter(n => !isActiveHighlight(n));
 
   const scrollToNews = () => {
     newsSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <div className="animate-fade-in">
-      {/* Hero Section */}
+    <div className="animate-fade-in dark:text-gray-100">
+      {/* Hero Section - Keeps Blue Brand Color in Dark Mode */}
       <div className="relative bg-brand-900 text-white py-24 px-4 sm:px-6 lg:px-8 overflow-hidden min-h-[85vh] flex flex-col justify-center">
         {/* Abstract background shapes */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-brand-800 opacity-50 blur-3xl"></div>
@@ -84,40 +98,40 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
       </div>
 
       {/* Mission & Vision Section */}
-      <div className="py-16 bg-white border-b border-gray-200">
+      <div className="py-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Misión */}
-            <div className="bg-brand-50 rounded-2xl p-8 border-l-8 border-brand-600 shadow-sm">
-              <h2 className="text-2xl font-bold text-brand-900 mb-4 flex items-center">
+            <div className="bg-brand-50 dark:bg-gray-800 rounded-2xl p-8 border-l-8 border-brand-600 shadow-sm dark:shadow-none transition-colors">
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-white mb-4 flex items-center">
                 <span className="bg-brand-600 text-white p-2 rounded-lg mr-3">
                   <CheckCircle className="w-6 h-6" />
                 </span>
                 Nuestra Misión
               </h2>
-              <p className="text-gray-700 leading-relaxed text-lg">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg">
                 Ofrecemos servicios de venta de neumáticos y mecánica especializada para garantizar la seguridad vial, el confort en el andar y cuidar la vida útil de los vehículos.
               </p>
-              <p className="text-gray-700 leading-relaxed text-lg mt-4">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg mt-4">
                 Optimizamos los tiempos de reparación, destacándonos por un trato personalizado, profesional y cordial hacia nuestros clientes.
               </p>
-              <p className="text-gray-700 leading-relaxed text-lg mt-4 font-medium">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-lg mt-4 font-medium">
                 Impulsamos un entorno laboral donde las personas son felices y fomentamos el desarrollo profesional.
               </p>
             </div>
 
             {/* Visión */}
-            <div className="bg-gold-50 rounded-2xl p-8 border-l-8 border-gold-400 shadow-sm">
-              <h2 className="text-2xl font-bold text-brand-900 mb-4 flex items-center">
+            <div className="bg-gold-50 dark:bg-gray-800 rounded-2xl p-8 border-l-8 border-gold-400 shadow-sm dark:shadow-none transition-colors">
+              <h2 className="text-2xl font-bold text-brand-900 dark:text-white mb-4 flex items-center">
                 <span className="bg-gold-400 text-brand-900 p-2 rounded-lg mr-3">
                   <Star className="w-6 h-6" />
                 </span>
                 Nuestra Visión
               </h2>
-              <p className="text-gray-700 leading-relaxed italic">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed italic">
                 “Consolidar nuestro legado como una gomería reconocida por su excelencia en Rosario y evolucionar en los próximos 2 años hacia un referente en servicios mecánicos integrales, alcanzando los estándares de calidad y atención propios de los servicios posventa de las principales agencias automotrices.
               </p>
-              <p className="text-gray-700 leading-relaxed italic mt-4">
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed italic mt-4">
                 Queremos mantener la calidad y confianza que nos han distinguido por más de 45 años, mientras incorporamos tecnología y procesos innovadores para brindar soluciones completas a nuestros clientes, apoyando además desde nuestra posición empresarial, causas nobles y fomentamos el arte en nuestra comunidad.”
               </p>
             </div>
@@ -126,121 +140,122 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
       </div>
 
       {/* Values Section */}
-      <div className="bg-gray-50 py-16">
+      <div className="bg-gray-50 dark:bg-gray-950 py-16 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-base text-brand-600 font-bold tracking-wide uppercase">Nuestra Identidad</h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+            <h2 className="text-base text-brand-600 dark:text-brand-400 font-bold tracking-wide uppercase">Nuestra Identidad</h2>
+            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
               Valores Institucionales: CREERTE
             </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
+            <p className="mt-4 max-w-2xl text-xl text-gray-500 dark:text-gray-400 mx-auto">
               Los pilares que sostienen nuestro trabajo diario y nos guían hacia el futuro.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             
+            {/* Value Card Template for Reuse */}
             {/* C - Compromiso */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900 p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
               <div className="flex items-center mb-4">
-                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                <div className="bg-brand-100 dark:bg-brand-900 p-3 rounded-full text-brand-600 dark:text-brand-300 mr-4">
                   <ShieldCheck className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  <span className="text-2xl text-brand-600 mr-1">C</span>ompromiso con la Seguridad
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-2xl text-brand-600 dark:text-brand-400 mr-1">C</span>ompromiso con la Seguridad
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Priorizar siempre la seguridad del cliente y de su vehículo mediante diagnósticos responsables y prácticas confiables.
               </p>
             </div>
 
             {/* R - Responsabilidad */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900 p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
               <div className="flex items-center mb-4">
-                <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
+                <div className="bg-gold-100 dark:bg-yellow-900/30 p-3 rounded-full text-brand-800 dark:text-gold-400 mr-4">
                   <Eye className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                   <span className="text-2xl text-gold-500 mr-1">R</span>esponsabilidad y Transparencia
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Ser claros, honestos y coherentes en cada diagnóstico, presupuesto y comunicación.
               </p>
             </div>
 
             {/* E - Excelencia */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900 p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
               <div className="flex items-center mb-4">
-                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                <div className="bg-brand-100 dark:bg-brand-900 p-3 rounded-full text-brand-600 dark:text-brand-300 mr-4">
                   <Star className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  <span className="text-2xl text-brand-600 mr-1">E</span>xcelencia en el Servicio
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-2xl text-brand-600 dark:text-brand-400 mr-1">E</span>xcelencia en el Servicio
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Brindar atención profesional, personalizada y orientada a la mejor experiencia posible.
               </p>
             </div>
 
             {/* E - Espacios */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900 p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
               <div className="flex items-center mb-4">
-                <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
+                <div className="bg-gold-100 dark:bg-yellow-900/30 p-3 rounded-full text-brand-800 dark:text-gold-400 mr-4">
                   <HomeIcon className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                   <span className="text-2xl text-gold-500 mr-1">E</span>spacios que Inspiran Confianza
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Crear ambientes modernos, ordenados y cómodos que transmitan tranquilidad y profesionalismo.
               </p>
             </div>
 
             {/* R - Respeto */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900 p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all">
               <div className="flex items-center mb-4">
-                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                <div className="bg-brand-100 dark:bg-brand-900 p-3 rounded-full text-brand-600 dark:text-brand-300 mr-4">
                   <Heart className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  <span className="text-2xl text-brand-600 mr-1">R</span>espeto y Empatía
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-2xl text-brand-600 dark:text-brand-400 mr-1">R</span>espeto y Empatía
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Tratar a clientes, proveedores y compañeros con escucha, respeto y comprensión.
               </p>
             </div>
 
             {/* T - Trabajo en Equipo */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900 p-6 border-t-4 border-gold-400 hover:shadow-xl transition-all">
               <div className="flex items-center mb-4">
-                <div className="bg-gold-100 p-3 rounded-full text-brand-800 mr-4">
+                <div className="bg-gold-100 dark:bg-yellow-900/30 p-3 rounded-full text-brand-800 dark:text-gold-400 mr-4">
                   <Users className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                   <span className="text-2xl text-gold-500 mr-1">T</span>rabajo en Equipo
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Colaborar para resolver problemas, mejorar procesos y ofrecer soluciones integrales.
               </p>
             </div>
 
-            {/* E - Evolución (Span 2 cols on MD/LG to center or fill) */}
-            <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all md:col-span-2 lg:col-span-3 xl:col-span-2">
+            {/* E - Evolución */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-gray-900 p-6 border-t-4 border-brand-500 hover:shadow-xl transition-all md:col-span-2 lg:col-span-3 xl:col-span-2">
               <div className="flex items-center mb-4">
-                <div className="bg-brand-100 p-3 rounded-full text-brand-600 mr-4">
+                <div className="bg-brand-100 dark:bg-brand-900 p-3 rounded-full text-brand-600 dark:text-brand-300 mr-4">
                   <TrendingUp className="h-6 w-6" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  <span className="text-2xl text-brand-600 mr-1">E</span>volución Continua
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <span className="text-2xl text-brand-600 dark:text-brand-400 mr-1">E</span>volución Continua
                 </h3>
               </div>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Aprender, mejorar y adaptarse constantemente para brindar un servicio cada vez mejor.
               </p>
             </div>
@@ -249,8 +264,8 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
         </div>
       </div>
 
-      {/* Internal Notice Board - Dynamic (Moved to Bottom) */}
-      <div ref={newsSectionRef} className="bg-gradient-to-b from-white to-gray-100 py-16 border-t border-gray-200">
+      {/* Internal Notice Board - Dynamic */}
+      <div ref={newsSectionRef} className="bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800 py-16 border-t border-gray-200 dark:border-gray-800 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            
            {/* HIGHLIGHTED SECTION */}
@@ -258,29 +273,29 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
              <div className="mb-12 animate-fade-in-up">
                <div className="flex items-center mb-6">
                  <div className="bg-gold-400 h-8 w-1 mr-3 rounded-full"></div>
-                 <h3 className="text-3xl font-bold text-gray-900 flex items-center">
+                 <h3 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
                    <Sparkles className="w-8 h-8 mr-3 text-gold-500 fill-current animate-pulse" />
                    Cartelera Destacada
                  </h3>
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                  {highlightedNews.map(item => (
-                   <div key={item.id} className="bg-white rounded-2xl shadow-xl border-l-8 border-l-gold-400 p-8 relative overflow-hidden group hover:transform hover:-translate-y-1 transition-all duration-300">
+                   <div key={item.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl dark:shadow-black border-l-8 border-l-gold-400 p-8 relative overflow-hidden group hover:transform hover:-translate-y-1 transition-all duration-300">
                       <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Star className="w-32 h-32 text-gold-400" />
                       </div>
                       <div className="relative z-10">
                         <div className="flex justify-between items-start mb-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gold-100 text-yellow-800">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gold-100 text-yellow-800 dark:bg-yellow-900 dark:text-gold-400">
                             Importante
                           </span>
-                          <span className="text-sm font-bold text-gray-400 flex items-center bg-gray-50 px-2 py-1 rounded">
+                          <span className="text-sm font-bold text-gray-400 dark:text-gray-500 flex items-center bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
                              <Clock className="w-4 h-4 mr-1" />
                              {item.date}
                           </span>
                         </div>
-                        <h4 className="text-2xl font-extrabold text-gray-900 mb-4 leading-tight">{item.title}</h4>
-                        <p className="text-gray-600 text-base leading-relaxed">{item.description}</p>
+                        <h4 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-4 leading-tight">{item.title}</h4>
+                        <p className="text-gray-600 dark:text-gray-300 text-base leading-relaxed">{item.description}</p>
                       </div>
                    </div>
                  ))}
@@ -292,22 +307,27 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
            <div className="mt-8">
              <div className="flex items-center mb-6">
                <div className="bg-brand-600 h-8 w-1 mr-3 rounded-full"></div>
-               <h3 className="text-2xl font-bold text-gray-900">Novedades Generales</h3>
+               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Novedades Generales</h3>
              </div>
              
-             <div className="bg-white shadow-lg overflow-hidden sm:rounded-xl border border-gray-200">
+             <div className="bg-white dark:bg-gray-800 shadow-lg overflow-hidden sm:rounded-xl border border-gray-200 dark:border-gray-700 transition-colors">
                {regularNews.length > 0 ? (
-                 <ul className="divide-y divide-gray-100">
+                 <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                    {regularNews.map((item) => (
                      <li key={item.id}>
-                       <div className="px-6 py-5 hover:bg-brand-50/50 cursor-pointer transition-colors group">
+                       <div className="px-6 py-5 hover:bg-brand-50/50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors group">
                          <div className="flex items-center justify-between">
-                           <p className="text-lg font-bold text-brand-800 truncate group-hover:text-brand-600 transition-colors">{item.title}</p>
-                           <div className="ml-2 flex-shrink-0 flex">
+                           <p className="text-lg font-bold text-brand-800 dark:text-brand-300 truncate group-hover:text-brand-600 dark:group-hover:text-white transition-colors">{item.title}</p>
+                           <div className="ml-2 flex-shrink-0 flex items-center gap-2">
+                             {item.autoDelete && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-400 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-900" title="Auto-eliminación activa">
+                                  <Clock className="w-3 h-3 mr-1" /> Expira pronto
+                                </span>
+                             )}
                              <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
-                               item.category.includes('Ventas') ? 'bg-gold-100 text-yellow-800 border-gold-200' :
-                               item.category.includes('Taller') ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                               'bg-gray-100 text-gray-800 border-gray-200'
+                               item.category.includes('Ventas') ? 'bg-gold-100 text-yellow-800 border-gold-200 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-700' :
+                               item.category.includes('Taller') ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700' :
+                               'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
                              }`}>
                                {item.category}
                              </span>
@@ -315,7 +335,7 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
                          </div>
                          <div className="mt-2 sm:flex sm:justify-between">
                            <div className="sm:flex">
-                             <p className="flex items-center text-sm text-gray-600 leading-relaxed">
+                             <p className="flex items-center text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                                {item.description}
                              </p>
                            </div>
@@ -329,9 +349,9 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
                    ))}
                  </ul>
                ) : (
-                 <div className="p-12 text-center text-gray-500 bg-gray-50">
-                   <div className="inline-block p-4 rounded-full bg-white mb-3 shadow-sm">
-                      <Clock className="w-8 h-8 text-gray-300" />
+                 <div className="p-12 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50">
+                   <div className="inline-block p-4 rounded-full bg-white dark:bg-gray-700 mb-3 shadow-sm">
+                      <Clock className="w-8 h-8 text-gray-300 dark:text-gray-500" />
                    </div>
                    <p className="text-lg font-medium">No hay novedades recientes para mostrar.</p>
                  </div>

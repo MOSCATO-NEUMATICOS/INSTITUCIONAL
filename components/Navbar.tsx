@@ -1,14 +1,17 @@
 
 import React, { useState } from 'react';
 import { Page } from '../types';
-import { Menu, X, BookOpen, Wrench, MessageSquare, Home, Lock, BarChart3, GraduationCap } from 'lucide-react';
+import { Menu, X, BookOpen, Wrench, MessageSquare, Home, Lock, BarChart3, GraduationCap, Sun, Moon, Monitor } from 'lucide-react';
+import { Theme } from '../App';
 
 interface NavbarProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
+  theme?: Theme;
+  onThemeChange?: (theme: Theme) => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate, theme = 'system', onThemeChange }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
@@ -25,6 +28,22 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
     setIsOpen(false);
   };
 
+  const toggleTheme = () => {
+    if (onThemeChange) {
+      if (theme === 'light') onThemeChange('dark');
+      else if (theme === 'dark') onThemeChange('system');
+      else onThemeChange('light');
+    }
+  };
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'light': return <Sun className="w-5 h-5 text-gold-400" />;
+      case 'dark': return <Moon className="w-5 h-5 text-brand-200" />;
+      case 'system': return <Monitor className="w-5 h-5 text-gray-400" />;
+    }
+  };
+
   return (
     <nav className="bg-brand-900 text-white sticky top-0 z-50 shadow-lg border-b-4 border-gold-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
              </span>
           </div>
           
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center">
             <div className="ml-10 flex items-baseline space-x-4">
               {navItems.map((item) => (
                 <button
@@ -68,9 +87,28 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
                 Admin
               </button>
             </div>
+
+            {/* Theme Toggle */}
+            <div className="ml-4 pl-4 border-l border-brand-700">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-brand-800 transition-colors focus:outline-none"
+                title={`Tema actual: ${theme === 'system' ? 'Sistema' : theme === 'light' ? 'Claro' : 'Oscuro'}`}
+              >
+                {getThemeIcon()}
+              </button>
+            </div>
           </div>
           
-          <div className="-mr-2 flex md:hidden">
+          <div className="-mr-2 flex md:hidden items-center">
+             {/* Mobile Theme Toggle */}
+             <button
+                onClick={toggleTheme}
+                className="p-2 rounded-full hover:bg-brand-800 transition-colors focus:outline-none mr-2"
+              >
+                {getThemeIcon()}
+              </button>
+
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="bg-brand-800 inline-flex items-center justify-center p-2 rounded-md text-brand-100 hover:text-white hover:bg-brand-700 focus:outline-none"

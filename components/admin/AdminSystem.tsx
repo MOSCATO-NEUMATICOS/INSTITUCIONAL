@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { IpAlias, VisitRecord } from '../../types';
 import { storageService } from '../../services/storage';
-import { Globe, Calendar, BarChart2, Network, Trash2, Database, Loader2, Download, RefreshCw, Smartphone, Monitor } from 'lucide-react';
+import { Globe, Calendar, BarChart2, Network, Trash2, Database, Loader2, Download, RefreshCw, Smartphone, Monitor, Wifi, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface AdminSystemProps {
   ipAliases: IpAlias[];
@@ -12,9 +12,18 @@ interface AdminSystemProps {
   fullDataExport: any; // All data props from parent
 }
 
+interface IpConnectionStat {
+  ip: string;
+  name: string;
+  isKnown: boolean;
+  count: number;
+  lastSeen: number;
+}
+
 export const AdminSystem: React.FC<AdminSystemProps> = ({ ipAliases, onAddIpAlias, onDeleteIpAlias, onImportData, fullDataExport }) => {
   const [visitStats, setVisitStats] = useState<{total: number, today: number, previousVisit: string}>({ total: 0, today: 0, previousVisit: '-' });
   const [recentVisitsLog, setRecentVisitsLog] = useState<VisitRecord[]>([]);
+  const [ipConnectionStats, setIpConnectionStats] = useState<IpConnectionStat[]>([]);
   const [newIpAlias, setNewIpAlias] = useState({ ip: '', name: '' });
   const [isExporting, setIsExporting] = useState(false);
 
@@ -45,9 +54,37 @@ export const AdminSystem: React.FC<AdminSystemProps> = ({ ipAliases, onAddIpAlia
 
       // Store log for table (Top 20)
       setRecentVisitsLog(visits.slice(0, 20));
+
+      // --- IP AGGREGATION LOGIC ---
+      const ipMap = new Map<string, { count: number, lastDate: number }>();
+
+      visits.forEach(v => {
+        // Normalize IP (some might be undefined or different formats)
+        const ip = v.ip || 'Desconocido';
+        const current = ipMap.get(ip) || { count: 0, lastDate: 0 };
+        
+        ipMap.set(ip, {
+          count: current.count + 1,
+          lastDate: Math.max(current.lastDate, v.timestamp)
+        });
+      });
+
+      // Convert Map to Array and Sort by Count
+      const statsArray: IpConnectionStat[] = Array.from(ipMap.entries()).map(([ip, data]) => {
+        const alias = ipAliases.find(a => a.ip === ip);
+        return {
+          ip,
+          name: alias ? alias.name : 'Desconocido',
+          isKnown: !!alias,
+          count: data.count,
+          lastSeen: data.lastDate
+        };
+      }).sort((a, b) => b.count - a.count); // Descending order
+
+      setIpConnectionStats(statsArray);
     };
     loadStats();
-  }, []);
+  }, [ipAliases]); // Re-run if aliases change to update names
 
   const handleAddAlias = (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,6 +222,74 @@ export const AdminSystem: React.FC<AdminSystemProps> = ({ ipAliases, onAddIpAlia
         </div>
         </div>
 
+        {/* IP RANKING TABLE (New Feature) */}
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="bg-brand-900 text-white px-6 py-4 flex justify-between items-center border-b border-brand-800">
+            <h3 className="font-bold flex items-center">
+              <Wifi className="w-5 h-5 mr-2 text-gold-400" />
+              Ranking de Conexiones por IP
+            </h3>
+            <span className="text-xs bg-brand-800 px-3 py-1 rounded-full text-brand-200">
+              {ipConnectionStats.length} dispositivos únicos
+            </span>
+          </div>
+          <div className="max-h-[300px] overflow-y-auto">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Identificación</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Dirección IP</th>
+                  <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Total Visitas</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Última Vez</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {ipConnectionStats.map((stat, index) => (
+                  <tr key={stat.ip} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-3 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {index < 3 && (
+                          <span className={`mr-2 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                            index === 0 ? 'bg-gold-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-400'
+                          }`}>
+                            {index + 1}
+                          </span>
+                        )}
+                        {stat.isKnown ? (
+                          <span className="flex items-center text-brand-700 font-bold">
+                            <CheckCircle2 className="w-4 h-4 mr-1.5 text-green-500" />
+                            {stat.name}
+                          </span>
+                        ) : (
+                          <span className="flex items-center text-gray-500 italic">
+                            <AlertCircle className="w-4 h-4 mr-1.5 text-gray-300" />
+                            Desconocido
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-3 whitespace-nowrap text-gray-600 font-mono text-xs">
+                      {stat.ip}
+                    </td>
+                    <td className="px-6 py-3 whitespace-nowrap text-center">
+                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
+                        stat.count > 50 ? 'bg-purple-100 text-purple-800' :
+                        stat.count > 20 ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {stat.count}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 whitespace-nowrap text-right text-gray-500 text-xs">
+                      {new Date(stat.lastSeen).toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* Security & Access Logs */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -228,7 +333,7 @@ export const AdminSystem: React.FC<AdminSystemProps> = ({ ipAliases, onAddIpAlia
         {/* ACCESS LOGS TABLE */}
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
-            <h3 className="font-bold text-gray-800">Registro de Actividad Reciente</h3>
+            <h3 className="font-bold text-gray-800">Registro de Actividad Reciente (Log)</h3>
             </div>
             <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm">

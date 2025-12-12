@@ -34,7 +34,14 @@ export interface NewsItem {
   date: string;
   description: string;
   highlight?: boolean;
+  highlightDuration?: number; // Cantidad de días que permanece destacada (default 15)
+  autoDelete?: boolean; // Si es true, se oculta/elimina automáticamente
+  autoDeleteDuration?: number; // Días tras los cuales se elimina
 }
+
+export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
+export type FeedbackType = 'suggestion' | 'claim' | 'bug' | 'request' | 'other';
+export type FeedbackPriority = 'normal' | 'high';
 
 export interface FeedbackItem {
   id: string;
@@ -43,6 +50,10 @@ export interface FeedbackItem {
   isAnonymous: boolean;
   name?: string;
   message: string;
+  status?: FeedbackStatus; // Nuevo: Estado del ticket
+  type?: FeedbackType;     // Nuevo: Tipo de mensaje
+  priority?: FeedbackPriority; // Nuevo: Prioridad
+  adminNotes?: string;     // Nuevo: Notas internas del admin
 }
 
 export interface VisitRecord {

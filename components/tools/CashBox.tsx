@@ -53,7 +53,7 @@ export const CashBox: React.FC = () => {
             className="flex items-center text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors bg-gray-50 px-3 py-2 rounded-md border border-gray-200"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            Limpiar
+            <span className="hidden sm:inline">Limpiar</span>
           </button>
         </div>
 
@@ -64,10 +64,10 @@ export const CashBox: React.FC = () => {
               <ArrowRight className="w-4 h-4 mr-2 text-green-600" />
               Ingreso de Billetes
             </h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {BILL_VALUES.map(bill => (
-                <div key={bill} className="flex items-center bg-gray-50 p-2 rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-green-100 focus-within:border-green-400 transition-all">
-                  <div className="w-20 text-right font-bold text-gray-700 mr-3 text-sm">
+                <div key={bill} className="flex items-center bg-gray-50 p-2 sm:p-2 rounded-lg border border-gray-200 focus-within:ring-2 focus-within:ring-green-100 focus-within:border-green-400 transition-all">
+                  <div className="w-24 text-right font-bold text-gray-700 mr-3 text-sm">
                     ${bill.toLocaleString()}
                   </div>
                   <div className="flex-1">
@@ -77,7 +77,7 @@ export const CashBox: React.FC = () => {
                       placeholder="0"
                       value={cashCounts[bill] || ''}
                       onChange={(e) => handleBillChange(bill, e.target.value)}
-                      className="w-full text-center p-1 border-gray-300 rounded border focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 font-mono font-bold"
+                      className="w-full text-center p-2 border-gray-300 rounded border focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 font-mono font-bold text-lg"
                     />
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export const CashBox: React.FC = () => {
                     value={systemTotalInput}
                     onChange={(e) => setSystemTotalInput(e.target.value)}
                     placeholder="0.00"
-                    className="focus:ring-brand-500 focus:border-brand-500 block w-full pl-7 pr-12 sm:text-xl border-gray-300 rounded-md py-3 border bg-white text-gray-900 font-bold"
+                    className="focus:ring-brand-500 focus:border-brand-500 block w-full pl-7 pr-12 text-xl sm:text-xl border-gray-300 rounded-md py-3 border bg-white text-gray-900 font-bold"
                   />
                 </div>
               </div>
@@ -126,7 +126,7 @@ export const CashBox: React.FC = () => {
                       ? 'bg-white border-blue-500' 
                       : 'bg-white border-red-500'
                 }`}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-center justify-between text-center sm:text-left gap-2">
                     <div className="flex items-center">
                       {!hasDifference ? (
                         <CheckCircle className="w-8 h-8 text-green-600 mr-3" />

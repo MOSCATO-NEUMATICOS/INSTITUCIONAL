@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Manual, ManualCategory } from '../types';
-import { Search, FileText, PlayCircle, Download, Eye, X } from 'lucide-react';
+import { Search, FileText, Download, Eye, X, BookOpen } from 'lucide-react';
+import { SectionHero } from '../components/SectionHero';
 
 interface ManualsProps {
   manuals: Manual[];
@@ -127,34 +128,62 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative animate-fade-in">
       
+      {/* HERO SECTION */}
+      <SectionHero
+        title="Manuales y Procedimientos"
+        subtitle="Biblioteca digital de documentación técnica, guías operativas y estándares de calidad de Moscato Neumáticos."
+        badgeText="Base de Conocimiento"
+        badgeIcon={BookOpen}
+      >
+        {/* Search integrated into Hero */}
+        <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 w-full max-w-md">
+          <label className="block text-sm font-bold text-white mb-2">Búsqueda Rápida</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-3 border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-gold-400 shadow-lg"
+              placeholder="Buscar por título o contenido..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <p className="text-xs text-brand-200 mt-2 text-center">
+            {filteredManuals.length} documentos disponibles
+          </p>
+        </div>
+      </SectionHero>
+
       {/* READER MODAL */}
       {selectedManual && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col border-t-8 border-gold-400">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col border-t-8 border-gold-400">
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-white">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-colors">
               <div>
-                <h3 className="text-xl md:text-2xl font-bold text-gray-900 truncate max-w-md">{selectedManual.title}</h3>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800 mt-1">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate max-w-md">{selectedManual.title}</h3>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-300 mt-1">
                   {selectedManual.category}
                 </span>
               </div>
               <button 
                 onClick={() => setSelectedManual(null)}
-                className="text-gray-400 hover:text-red-500 transition-colors bg-gray-100 p-2 rounded-full hover:bg-gray-200"
+                className="text-gray-400 hover:text-red-500 transition-colors bg-gray-100 dark:bg-gray-800 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
             
             {/* Content (Scrollable or Iframe) */}
-            <div className="flex-grow bg-gray-100 overflow-hidden relative">
+            <div className="flex-grow bg-gray-100 dark:bg-gray-950 overflow-hidden relative">
               {selectedManual.textContent ? (
                  /* TEXT MODE */
                  <div className="h-full overflow-y-auto p-8">
-                    <div className="prose max-w-none text-gray-800 whitespace-pre-line font-sans leading-relaxed text-base bg-white p-8 rounded-lg shadow-sm border border-gray-200 mx-auto max-w-4xl">
+                    <div className="prose max-w-none text-gray-800 whitespace-pre-line font-sans leading-relaxed text-base bg-white p-8 rounded-lg shadow-sm border border-gray-200 mx-auto max-w-4xl dark:bg-gray-900 dark:text-gray-300 dark:border-gray-800">
                       {selectedManual.textContent}
                     </div>
                  </div>
@@ -178,7 +207,7 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-gray-200 bg-gray-50 rounded-b-xl flex justify-between items-center">
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl flex justify-between items-center">
               <span className="text-xs text-gray-400 italic hidden sm:inline">
                 {selectedManual.link ? 'Visualizando PDF adjunto' : 'Visualizando versión digital'}
               </span>
@@ -193,25 +222,6 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
         </div>
       )}
 
-      <div className="md:flex md:items-center md:justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Manuales y Tutoriales</h2>
-          <p className="mt-1 text-sm text-gray-500">Documentación técnica y guías operativas.</p>
-        </div>
-        <div className="mt-4 md:mt-0 relative rounded-md shadow-sm">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            className="focus:ring-brand-500 focus:border-brand-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md py-2 border bg-white text-gray-900"
-            placeholder="Buscar manual..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
       {/* Category Tabs */}
       <div className="flex overflow-x-auto pb-4 mb-6 space-x-2 scrollbar-hide">
         {Object.values(ManualCategory).map((category) => (
@@ -220,8 +230,8 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
             onClick={() => setSelectedCategory(category)}
             className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               selectedCategory === category
-                ? 'bg-brand-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                ? 'bg-brand-600 text-white shadow-md'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
             }`}
           >
             {category}
@@ -232,29 +242,29 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
       {/* Manuals Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredManuals.map((manual) => (
-          <div key={manual.id} className="bg-white flex flex-col rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <div key={manual.id} className="bg-white dark:bg-gray-800 flex flex-col rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all">
             <div className="p-6 flex-1">
               <div className="flex items-center justify-between mb-4">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  manual.category === ManualCategory.SEGURIDAD ? 'bg-red-100 text-red-800' :
-                  manual.category === ManualCategory.ADMINISTRACION ? 'bg-purple-100 text-purple-800' :
-                  'bg-brand-100 text-brand-800'
+                  manual.category === ManualCategory.SEGURIDAD ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :
+                  manual.category === ManualCategory.ADMINISTRACION ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
+                  'bg-brand-100 text-brand-800 dark:bg-brand-900/50 dark:text-brand-200'
                 }`}>
                   {manual.category}
                 </span>
                 <span className="text-gray-400 text-xs">{manual.lastUpdated}</span>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                 <FileText className="w-5 h-5 mr-2 text-gray-400" />
                 {manual.title}
               </h3>
-              <p className="mt-2 text-sm text-gray-500 line-clamp-3">
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-3">
                 {manual.description}
               </p>
             </div>
             
             {/* Action Buttons Footer */}
-            <div className="bg-gray-50 px-6 py-4 rounded-b-lg border-t border-gray-100 flex flex-col gap-3">
+            <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 rounded-b-lg border-t border-gray-100 dark:border-gray-700 flex flex-col gap-3">
               <div className="flex justify-between items-center gap-2">
                 {/* READ ONLINE BUTTON */}
                 {(manual.textContent || manual.link) ? (
@@ -266,7 +276,7 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
                     Leer Online
                   </button>
                 ) : (
-                  <button disabled className="flex-1 bg-gray-200 text-gray-400 text-sm font-medium py-2 px-3 rounded flex items-center justify-center cursor-not-allowed">
+                  <button disabled className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-medium py-2 px-3 rounded flex items-center justify-center cursor-not-allowed">
                      <Eye className="w-4 h-4 mr-2" />
                      No disp.
                   </button>
@@ -278,8 +288,8 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
                   disabled={!manual.link && !manual.textContent}
                   className={`flex-shrink-0 border p-2 rounded transition-colors ${
                     (manual.link || manual.textContent)
-                      ? 'text-brand-600 hover:text-brand-800 bg-white hover:bg-brand-50 border-brand-200 cursor-pointer'
-                      : 'text-gray-300 border-gray-200 cursor-not-allowed'
+                      ? 'text-brand-600 hover:text-brand-800 bg-white hover:bg-brand-50 border-brand-200 dark:bg-gray-700 dark:text-brand-400 dark:border-gray-600 dark:hover:bg-gray-600 cursor-pointer'
+                      : 'text-gray-300 border-gray-200 dark:bg-gray-800 dark:border-gray-700 cursor-not-allowed'
                   }`}
                   title={manual.link ? "Descargar PDF" : "Descargar Versión Imprimible"}
                 >
@@ -292,7 +302,7 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
 
         {filteredManuals.length === 0 && (
           <div className="col-span-full text-center py-12">
-            <p className="text-gray-500">No se encontraron manuales con los criterios seleccionados.</p>
+            <p className="text-gray-500 dark:text-gray-400">No se encontraron manuales con los criterios seleccionados.</p>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Database, Search, Car, Disc } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Database, Search, Car, Disc, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 // --- ORIGINAL EQUIPMENT DATA (From PDF) ---
 interface OERecord {
@@ -95,31 +95,87 @@ const OE_DATA: OERecord[] = [
   { id: '75', linea: 'CAMIONETA', marca: 'WANLI', medida: '235/50R19', modelo: 'WANLI SU027', equipoOriginal: 'JAC JS8-Pro' },
 ];
 
+type SortKey = keyof OERecord;
+type SortDirection = 'asc' | 'desc';
+
 export const OEGuide: React.FC = () => {
   const [searchTermOE, setSearchTermOE] = useState('');
-
-  const filteredOEData = OE_DATA.filter(item => {
-    const searchLower = searchTermOE.toLowerCase();
-    return (
-      item.marca.toLowerCase().includes(searchLower) ||
-      item.modelo.toLowerCase().includes(searchLower) ||
-      item.medida.toLowerCase().includes(searchLower) ||
-      item.equipoOriginal.toLowerCase().includes(searchLower) ||
-      item.linea.toLowerCase().includes(searchLower)
-    );
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey | null; direction: SortDirection }>({ 
+    key: null, 
+    direction: 'asc' 
   });
 
+  const filteredOEData = useMemo(() => {
+    let data = OE_DATA.filter(item => {
+      const searchLower = searchTermOE.toLowerCase();
+      return (
+        item.marca.toLowerCase().includes(searchLower) ||
+        item.modelo.toLowerCase().includes(searchLower) ||
+        item.medida.toLowerCase().includes(searchLower) ||
+        item.equipoOriginal.toLowerCase().includes(searchLower) ||
+        item.linea.toLowerCase().includes(searchLower)
+      );
+    });
+
+    if (sortConfig.key) {
+      data.sort((a, b) => {
+        const aValue = a[sortConfig.key!].toString().toLowerCase();
+        const bValue = b[sortConfig.key!].toString().toLowerCase();
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return data;
+  }, [searchTermOE, sortConfig]);
+
+  const handleSort = (key: SortKey) => {
+    let direction: SortDirection = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: SortKey) => {
+    if (sortConfig.key !== key) return <ArrowUpDown className="w-3 h-3 ml-1 text-gray-400 opacity-50" />;
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="w-3 h-3 ml-1 text-blue-500" /> 
+      : <ArrowDown className="w-3 h-3 ml-1 text-blue-500" />;
+  };
+
+  const getBrandStyle = (brand: string) => {
+    switch (brand.toUpperCase()) {
+      case 'GOODYEAR':
+        return 'bg-brand-700 text-gold-400 border border-gold-400 shadow-sm font-bold tracking-wide';
+      case 'GITI':
+        return 'bg-yellow-400 text-black border border-black shadow-sm font-extrabold';
+      case 'GT':
+        return 'bg-gray-800 text-white border border-gray-600 shadow-sm font-bold';
+      case 'WANLI':
+        return 'bg-red-600 text-white border border-red-800 shadow-sm font-bold';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600';
+    }
+  };
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-lg border-t-4 border-t-blue-600 animate-fade-in">
+    <div className="rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 shadow-lg border-t-4 border-t-blue-600 animate-fade-in transition-colors">
       <div className="p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
           <div className="flex items-center">
-            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4 text-blue-700">
+            <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-4 text-blue-700 dark:text-blue-400">
               <Database className="h-7 w-7" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">Guía de Equipamiento Original</h3>
-              <p className="text-sm text-gray-500">Base de datos de neumáticos homologados</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Guía de Equipamiento Original</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Base de datos de neumáticos homologados</p>
             </div>
           </div>
 
@@ -132,59 +188,156 @@ export const OEGuide: React.FC = () => {
               type="text"
               value={searchTermOE}
               onChange={(e) => setSearchTermOE(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm transition-colors"
               placeholder="Buscar por auto, medida o marca..."
             />
           </div>
         </div>
 
-        {/* Data Table */}
-        <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm">
+        {/* RESULTS: TABLE FOR DESKTOP, CARDS FOR MOBILE */}
+        
+        {/* Mobile View (Cards) */}
+        <div className="md:hidden space-y-4">
+          {/* Sorting controls for mobile */}
+          <div className="flex overflow-x-auto pb-2 gap-2 mb-2">
+             <button onClick={() => handleSort('equipoOriginal')} className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border ${sortConfig.key === 'equipoOriginal' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-white text-gray-600 border-gray-300'}`}>
+                Auto {sortConfig.key === 'equipoOriginal' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+             </button>
+             <button onClick={() => handleSort('medida')} className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border ${sortConfig.key === 'medida' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-white text-gray-600 border-gray-300'}`}>
+                Medida {sortConfig.key === 'medida' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+             </button>
+             <button onClick={() => handleSort('marca')} className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border ${sortConfig.key === 'marca' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-white text-gray-600 border-gray-300'}`}>
+                Marca {sortConfig.key === 'marca' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+             </button>
+          </div>
+
+          {filteredOEData.length > 0 ? (
+            filteredOEData.map((item) => (
+              <div key={item.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center text-gray-900 dark:text-white font-bold">
+                    <Car className="h-4 w-4 text-gray-400 mr-2" />
+                    {item.equipoOriginal}
+                  </div>
+                  <span className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">
+                    {item.linea}
+                  </span>
+                </div>
+                
+                <div className="flex items-center justify-between mt-3">
+                  <div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Medida</span>
+                    <div className="flex items-center mt-1">
+                      <Disc className="h-4 w-4 text-blue-500 mr-1" />
+                      <span className="text-lg font-mono font-bold text-gray-900 dark:text-white">{item.medida}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold mb-1 ${getBrandStyle(item.marca)}`}>
+                      {item.marca}
+                    </span>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">{item.modelo}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              No se encontraron resultados para "{searchTermOE}"
+            </div>
+          )}
+        </div>
+
+        {/* Desktop View (Table) */}
+        <div className="hidden md:block overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
           <div className="max-h-[600px] overflow-y-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Vehículo / Equipo Original</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Marca</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Medida</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Modelo</th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors select-none group"
+                    onClick={() => handleSort('equipoOriginal')}
+                  >
+                    <div className="flex items-center">
+                      Vehículo / Equipo Original
+                      {getSortIcon('equipoOriginal')}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors select-none group"
+                    onClick={() => handleSort('marca')}
+                  >
+                    <div className="flex items-center">
+                      Marca
+                      {getSortIcon('marca')}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors select-none group"
+                    onClick={() => handleSort('medida')}
+                  >
+                    <div className="flex items-center">
+                      Medida
+                      {getSortIcon('medida')}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors select-none group"
+                    onClick={() => handleSort('modelo')}
+                  >
+                    <div className="flex items-center">
+                      Modelo
+                      {getSortIcon('modelo')}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-center text-xs font-bold text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors select-none group"
+                    onClick={() => handleSort('linea')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Tipo
+                      {getSortIcon('linea')}
+                    </div>
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredOEData.length > 0 ? (
                   filteredOEData.map((item) => (
-                    <tr key={item.id} className="hover:bg-blue-50 transition-colors">
+                    <tr key={item.id} className="hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <Car className="h-5 w-5 text-gray-400 mr-2" />
-                          <span className="text-sm font-bold text-gray-900">{item.equipoOriginal}</span>
+                          <span className="text-sm font-bold text-gray-900 dark:text-white">{item.equipoOriginal}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          item.marca === 'GOODYEAR' ? 'bg-gold-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getBrandStyle(item.marca)}`}>
                           {item.marca}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <Disc className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm font-mono font-medium text-gray-900">{item.medida}</span>
+                          <span className="text-sm font-mono font-medium text-gray-900 dark:text-white">{item.medida}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {item.modelo}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">
                         {item.linea}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                       No se encontraron resultados para "{searchTermOE}"
                     </td>
                   </tr>
@@ -192,7 +345,7 @@ export const OEGuide: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
+          <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex justify-between">
             <span>Mostrando {filteredOEData.length} resultados</span>
             <span>Fuente: Base de datos interna actualizada</span>
           </div>

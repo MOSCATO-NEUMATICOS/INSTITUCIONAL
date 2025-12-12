@@ -98,7 +98,7 @@ export const TireComparator: React.FC = () => {
               title="Ayuda técnica"
             >
               <HelpCircle className="w-4 h-4 mr-2" />
-              Ayuda
+              <span className="hidden sm:inline">Ayuda</span>
             </button>
             <button 
               onClick={() => setShowTireReport(!showTireReport)}
@@ -198,12 +198,12 @@ export const TireComparator: React.FC = () => {
 
               return (
                 <div key={tire.id} className="relative bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow group">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                     <div className="bg-gray-100 text-gray-500 font-bold px-3 py-1.5 rounded text-xs uppercase tracking-wide">
                       Opción {index + 1}
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-2 flex-grow max-w-sm w-full">
+                    <div className="grid grid-cols-3 gap-2 flex-grow w-full md:w-auto md:max-w-sm">
                       <select 
                         value={tire.width}
                         onChange={(e) => updateComparisonTire(tire.id, 'width', e.target.value)}
@@ -231,8 +231,8 @@ export const TireComparator: React.FC = () => {
                     </div>
 
                     {status ? (
-                      <div className="flex-grow flex items-center justify-between w-full sm:w-auto mt-2 sm:mt-0 bg-gray-50 p-2 rounded sm:bg-transparent sm:p-0">
-                        <div className="text-right sm:text-left mr-6">
+                      <div className="flex-grow flex items-center justify-between w-full md:w-auto mt-2 md:mt-0 bg-gray-50 p-2 rounded md:bg-transparent md:p-0">
+                        <div className="text-right md:text-left mr-6">
                           <span className="block font-bold text-gray-900 text-sm">{calculated?.diameter.toFixed(1)} mm</span>
                           <span className={`text-xs font-bold ${status.diffMm >= 0 ? 'text-gray-500' : 'text-gray-500'}`}>
                             {status.diffMm > 0 ? '+' : ''}{status.diffMm.toFixed(1)} mm
@@ -246,14 +246,14 @@ export const TireComparator: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex-grow text-center text-xs text-gray-400 italic">
+                      <div className="flex-grow text-center text-xs text-gray-400 italic py-2 md:py-0">
                         Complete las medidas
                       </div>
                     )}
 
                     <button 
                       onClick={() => removeComparisonTire(tire.id)}
-                      className="absolute top-2 right-2 sm:static text-gray-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                      className="absolute top-2 right-2 md:static text-gray-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
                       title="Eliminar fila"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -277,7 +277,7 @@ export const TireComparator: React.FC = () => {
 
         {/* Detailed Report Table */}
         {(showTireReport || (patternCalculated && comparisonTires.some(t => t.width && t.profile && t.rim))) && (
-          <div className="mt-8 overflow-hidden rounded-lg border border-gray-200 shadow-sm animate-fade-in">
+          <div className="mt-8 overflow-x-auto rounded-lg border border-gray-200 shadow-sm animate-fade-in">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-brand-900 text-white">
                 <tr>

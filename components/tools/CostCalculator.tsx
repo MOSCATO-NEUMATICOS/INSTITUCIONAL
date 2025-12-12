@@ -160,7 +160,7 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
             className="flex items-center text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors bg-gray-50 px-3 py-2 rounded-md border border-gray-200"
           >
             <RefreshCcw className="w-4 h-4 mr-2" />
-            Reiniciar
+            <span className="hidden sm:inline">Reiniciar</span>
           </button>
         </div>
 
@@ -169,7 +169,7 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
           {/* 1. SUPPLIER SELECTOR */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-              1. Seleccione Proveedores a Comparar
+              1. Seleccione Proveedores
             </h4>
             <div className="flex flex-wrap gap-2">
               {sortedSuppliers.map(sup => {
@@ -195,170 +195,236 @@ export const CostCalculator: React.FC<CostCalculatorProps> = ({ suppliers = [] }
             </div>
           </div>
 
-          {/* 2. INPUT & RESULTS TABLE */}
+          {/* 2. INPUT & RESULTS - RESPONSIVE */}
           {activeSuppliers.length > 0 ? (
-            <div className="overflow-hidden border border-gray-200 rounded-lg shadow-sm animate-fade-in">
-              <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="animate-fade-in">
+              <div className="bg-gray-100 px-4 py-3 border border-gray-200 rounded-t-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                  <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                    2. Ingrese Precios de Lista
                  </h4>
                  
                  {/* Legend */}
                  {stats.maxPrice > 0 && (
-                   <div className="flex gap-3 text-[10px] font-bold uppercase tracking-wide">
+                   <div className="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-wide">
                       <span className="flex items-center text-green-700"><Trophy className="w-3 h-3 mr-1" /> Mejor Costo</span>
-                      <span className="flex items-center text-blue-700"><BadgeCheck className="w-3 h-3 mr-1" /> Mejor Margen</span>
                       <span className="flex items-center text-yellow-700"><Star className="w-3 h-3 mr-1" /> Precio Sugerido</span>
                    </div>
                  )}
               </div>
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-800 text-white">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider w-[20%]">
-                      Proveedor
-                    </th>
-                    {/* Increased width for Price Column */}
-                    <th scope="col" className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[18%] min-w-[140px] bg-gray-700 border-l border-gray-600">
-                      Precio Lista
-                    </th>
-                    <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[8%] hidden sm:table-cell">
-                      Desc.
-                    </th>
-                    <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[10%] border-l border-gray-700">
-                      Ajuste
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider w-[18%]">
-                      Costo Neto
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider w-[22%] bg-green-700">
-                      Precio Venta
-                    </th>
-                    <th className="w-8"></th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {calculatedRows.map((row) => {
-                    const { id, name, discountChain, addIva, margin, marginBase, priceInput, adjustmentInput, result } = row;
-                    const { cost, salePrice, realMargin, isValid } = result;
-                    
-                    // Comparators (with float tolerance)
-                    const isLowestCost = isValid && stats.minCost > 0 && Math.abs(cost - stats.minCost) < 0.01;
-                    const isBestMargin = isValid && stats.maxMargin > -Infinity && Math.abs(realMargin - stats.maxMargin) < 0.01;
-                    const isHighestPrice = isValid && stats.maxPrice > 0 && Math.abs(salePrice - stats.maxPrice) < 0.01;
 
-                    return (
-                      <tr 
-                        key={id} 
-                        className={`transition-colors group hover:bg-gray-50`}
-                      >
-                        <td className="px-4 py-3 whitespace-nowrap align-middle">
-                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-gray-900">{name}</span>
-                            <span className="text-[10px] text-gray-500 sm:hidden">Desc: {discountChain}</span>
-                          </div>
-                        </td>
-                        
-                        {/* Input List Price */}
-                        <td className="px-4 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200 align-middle">
-                          <div className="relative rounded-md shadow-sm">
-                            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                              <span className="text-gray-400 sm:text-sm">$</span>
-                            </div>
+              {/* MOBILE VIEW (CARDS) */}
+              <div className="md:hidden space-y-4 mt-4">
+                {calculatedRows.map((row) => {
+                  const { id, name, discountChain, addIva, priceInput, adjustmentInput, result } = row;
+                  const { cost, salePrice, realMargin, isValid } = result;
+                  const isLowestCost = isValid && stats.minCost > 0 && Math.abs(cost - stats.minCost) < 0.01;
+                  const isHighestPrice = isValid && stats.maxPrice > 0 && Math.abs(salePrice - stats.maxPrice) < 0.01;
+
+                  return (
+                    <div key={id} className={`bg-white rounded-lg border shadow-sm p-4 relative ${isHighestPrice ? 'ring-2 ring-yellow-400' : 'border-gray-200'}`}>
+                      {/* Header */}
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <span className="text-lg font-bold text-gray-900 block">{name}</span>
+                          <span className="text-xs text-gray-500 font-mono">Desc: {discountChain}</span>
+                        </div>
+                        <button onClick={() => toggleSupplier(id)} className="text-gray-300 hover:text-red-500 p-1">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Inputs Row */}
+                      <div className="flex gap-2 mb-4">
+                        <div className="flex-grow">
+                          <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">Precio Lista</label>
+                          <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-2 flex items-center text-gray-400 font-bold">$</span>
                             <input
                               type="number"
                               value={priceInput}
                               onChange={(e) => handlePriceChange(id, e.target.value)}
-                              className="focus:ring-green-500 focus:border-green-500 block w-full pl-6 pr-8 sm:text-sm border-gray-300 rounded-md py-2 bg-white text-gray-900 font-bold border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-full pl-6 border border-gray-300 rounded p-2 text-lg font-bold text-gray-900 focus:ring-green-500 focus:border-green-500"
                               placeholder="0.00"
                             />
-                            {addIva && (
-                              <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none" title="Se suma IVA al costo">
-                                <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1 rounded border border-green-200">+IVA</span>
-                              </div>
+                          </div>
+                          {addIva && <span className="text-[10px] text-green-600 font-bold block mt-1">+IVA (21%)</span>}
+                        </div>
+                        <div className="w-20">
+                          <label className="block text-[10px] text-gray-500 font-bold uppercase mb-1">Ajuste %</label>
+                          <input
+                            type="number"
+                            value={adjustmentInput}
+                            onChange={(e) => handleAdjustmentChange(id, e.target.value)}
+                            className="w-full border border-gray-300 rounded p-2 text-center text-sm font-medium"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Results Footer */}
+                      {isValid ? (
+                        <div className="bg-gray-50 rounded p-3 grid grid-cols-2 gap-4 border border-gray-100">
+                          <div>
+                            <span className="block text-[10px] uppercase text-gray-500 font-bold">Costo Neto</span>
+                            <span className={`block font-bold ${isLowestCost ? 'text-green-700 text-lg' : 'text-gray-700 text-base'}`}>
+                              {formatCurrency(cost)}
+                            </span>
+                            {isLowestCost && (
+                              <span className="inline-flex items-center text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded mt-1 border border-green-200">
+                                <Trophy className="w-3 h-3 mr-1" /> Mejor Costo
+                              </span>
                             )}
                           </div>
-                        </td>
-                        
-                        {/* Discount Info */}
-                        <td className="px-2 py-3 whitespace-nowrap text-center text-xs text-gray-500 font-mono hidden sm:table-cell align-middle">
-                          {discountChain}
-                        </td>
-                        
-                        {/* Adjustment Input */}
-                        <td className="px-2 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200 align-middle">
-                           <div className="relative rounded-md shadow-sm">
-                            <input
-                              type="number"
-                              value={adjustmentInput}
-                              onChange={(e) => handleAdjustmentChange(id, e.target.value)}
-                              className="focus:ring-green-500 focus:border-green-500 block w-full pr-6 sm:text-xs border-gray-300 rounded-md py-1.5 bg-white text-gray-900 font-medium text-center border"
-                              placeholder="%"
-                            />
-                            <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
-                              <span className="text-gray-400 text-xs">%</span>
-                            </div>
+                          <div className="text-right">
+                            <span className="block text-[10px] uppercase text-gray-500 font-bold">Venta</span>
+                            <span className={`block font-bold ${isHighestPrice ? 'text-gray-900 text-2xl' : 'text-gray-700 text-lg'}`}>
+                              {formatCurrency(salePrice)}
+                            </span>
+                            <span className="block text-[10px] text-gray-500 mt-1">Mg. Real: {realMargin.toFixed(1)}%</span>
                           </div>
-                        </td>
-                        
-                        {/* Calculated Net Cost */}
-                        <td className={`px-4 py-3 whitespace-nowrap text-right text-sm align-middle ${isLowestCost ? 'bg-green-50' : ''}`}>
-                          {isValid ? (
-                            <div className="flex flex-col items-end">
-                              <span className={`font-bold ${isLowestCost ? 'text-green-700 text-base' : 'text-gray-700'}`}>
-                                {formatCurrency(cost)}
-                              </span>
-                              {isLowestCost && (
-                                <span className="text-[9px] font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full flex items-center mt-1 border border-green-200">
-                                  <Trophy className="w-3 h-3 mr-1" /> MEJOR COSTO
-                                </span>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-400 text-sm py-2 italic border-t border-gray-100 pt-3">
+                          Ingrese precio de lista para calcular
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* DESKTOP VIEW (TABLE) */}
+              <div className="hidden md:block overflow-hidden border border-gray-200 rounded-b-lg shadow-sm">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-800 text-white">
+                    <tr>
+                      <th scope="col" className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider w-[20%]">
+                        Proveedor
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider w-[18%] min-w-[140px] bg-gray-700 border-l border-gray-600">
+                        Precio Lista
+                      </th>
+                      <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[8%] hidden sm:table-cell">
+                        Desc.
+                      </th>
+                      <th scope="col" className="px-2 py-3 text-center text-xs font-bold uppercase tracking-wider w-[10%] border-l border-gray-700">
+                        Ajuste
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider w-[18%]">
+                        Costo Neto
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider w-[22%] bg-green-700">
+                        Precio Venta
+                      </th>
+                      <th className="w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {calculatedRows.map((row) => {
+                      const { id, name, discountChain, addIva, priceInput, adjustmentInput, result } = row;
+                      const { cost, salePrice, realMargin, isValid } = result;
+                      
+                      const isLowestCost = isValid && stats.minCost > 0 && Math.abs(cost - stats.minCost) < 0.01;
+                      const isBestMargin = isValid && stats.maxMargin > -Infinity && Math.abs(realMargin - stats.maxMargin) < 0.01;
+                      const isHighestPrice = isValid && stats.maxPrice > 0 && Math.abs(salePrice - stats.maxPrice) < 0.01;
+
+                      return (
+                        <tr key={id} className={`transition-colors group hover:bg-gray-50`}>
+                          <td className="px-4 py-3 whitespace-nowrap align-middle">
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-gray-900">{name}</span>
+                              <span className="text-[10px] text-gray-500 sm:hidden">Desc: {discountChain}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200 align-middle">
+                            <div className="relative rounded-md shadow-sm">
+                              <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                <span className="text-gray-400 sm:text-sm">$</span>
+                              </div>
+                              <input
+                                type="number"
+                                value={priceInput}
+                                onChange={(e) => handlePriceChange(id, e.target.value)}
+                                className="focus:ring-green-500 focus:border-green-500 block w-full pl-6 pr-8 sm:text-sm border-gray-300 rounded-md py-2 bg-white text-gray-900 font-bold border [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                placeholder="0.00"
+                              />
+                              {addIva && (
+                                <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none" title="Se suma IVA al costo">
+                                  <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1 rounded border border-green-200">+IVA</span>
+                                </div>
                               )}
                             </div>
-                          ) : (
-                            <span className="text-gray-300">-</span>
-                          )}
-                        </td>
-                        
-                        {/* Calculated Sale Price */}
-                        <td className={`px-4 py-3 whitespace-nowrap text-right bg-green-50 align-middle ${isHighestPrice ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}>
-                          {isValid ? (
-                            <div className="flex flex-col items-end">
-                              <span className={`leading-none ${isHighestPrice ? 'text-xl font-extrabold text-gray-900' : 'text-lg font-bold text-green-700'}`}>
-                                {formatCurrency(salePrice)}
-                              </span>
-                              
-                              {isHighestPrice && (
-                                <span className="text-[10px] font-bold text-yellow-800 bg-yellow-200 px-2 py-0.5 rounded-full flex items-center mt-1 mb-1">
-                                  <Star className="w-3 h-3 mr-1 fill-current" /> PRECIO SUGERIDO
-                                </span>
-                              )}
-
-                              <div className="flex flex-col items-end mt-1 w-full border-t border-gray-200/50 pt-1">
-                                <span className={`text-xs font-bold flex items-center ${isBestMargin ? 'text-blue-600 bg-blue-50 px-1 rounded' : 'text-gray-500'}`}>
-                                  {isBestMargin && <BadgeCheck className="w-3 h-3 mr-1" />}
-                                  Mg. Real: {realMargin.toFixed(1)}%
-                                </span>
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap text-center text-xs text-gray-500 font-mono hidden sm:table-cell align-middle">
+                            {discountChain}
+                          </td>
+                          <td className="px-2 py-3 whitespace-nowrap bg-gray-50 border-l border-gray-200 align-middle">
+                             <div className="relative rounded-md shadow-sm">
+                              <input
+                                type="number"
+                                value={adjustmentInput}
+                                onChange={(e) => handleAdjustmentChange(id, e.target.value)}
+                                className="focus:ring-green-500 focus:border-green-500 block w-full pr-6 sm:text-xs border-gray-300 rounded-md py-1.5 bg-white text-gray-900 font-medium text-center border"
+                                placeholder="%"
+                              />
+                              <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
+                                <span className="text-gray-400 text-xs">%</span>
                               </div>
                             </div>
-                          ) : (
-                            <span className="text-gray-300">-</span>
-                          )}
-                        </td>
-                        
-                        <td className="px-2 py-3 text-center align-middle">
-                           <button 
-                             onClick={() => toggleSupplier(id)}
-                             className="text-gray-300 hover:text-red-500 transition-colors"
-                             title="Quitar de comparativa"
-                           >
-                             <X className="w-4 h-4" />
-                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          </td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-right text-sm align-middle ${isLowestCost ? 'bg-green-50' : ''}`}>
+                            {isValid ? (
+                              <div className="flex flex-col items-end">
+                                <span className={`font-bold ${isLowestCost ? 'text-green-700 text-base' : 'text-gray-700'}`}>
+                                  {formatCurrency(cost)}
+                                </span>
+                                {isLowestCost && (
+                                  <span className="text-[9px] font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full flex items-center mt-1 border border-green-200">
+                                    <Trophy className="w-3 h-3 mr-1" /> MEJOR COSTO
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                          <td className={`px-4 py-3 whitespace-nowrap text-right bg-green-50 align-middle ${isHighestPrice ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}>
+                            {isValid ? (
+                              <div className="flex flex-col items-end">
+                                <span className={`leading-none ${isHighestPrice ? 'text-xl font-extrabold text-gray-900' : 'text-lg font-bold text-green-700'}`}>
+                                  {formatCurrency(salePrice)}
+                                </span>
+                                {isHighestPrice && (
+                                  <span className="text-[10px] font-bold text-yellow-800 bg-yellow-200 px-2 py-0.5 rounded-full flex items-center mt-1 mb-1">
+                                    <Star className="w-3 h-3 mr-1 fill-current" /> PRECIO SUGERIDO
+                                  </span>
+                                )}
+                                <div className="flex flex-col items-end mt-1 w-full border-t border-gray-200/50 pt-1">
+                                  <span className={`text-xs font-bold flex items-center ${isBestMargin ? 'text-blue-600 bg-blue-50 px-1 rounded' : 'text-gray-500'}`}>
+                                    {isBestMargin && <BadgeCheck className="w-3 h-3 mr-1" />}
+                                    Mg. Real: {realMargin.toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-3 text-center align-middle">
+                             <button 
+                               onClick={() => toggleSupplier(id)}
+                               className="text-gray-300 hover:text-red-500 transition-colors"
+                               title="Quitar de comparativa"
+                             >
+                               <X className="w-4 h-4" />
+                             </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : (
             <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 flex flex-col items-center justify-center">

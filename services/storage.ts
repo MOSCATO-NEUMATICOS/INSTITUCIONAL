@@ -679,6 +679,20 @@ export const storageService = {
     return item;
   },
 
+  // NEW METHOD: Update Feedback Status/Metadata
+  async updateFeedback(item: FeedbackItem): Promise<void> {
+    if (isFirebaseConfigured && db) {
+      try {
+        const { id, ...data } = item;
+        await updateDoc(doc(db, "feedback", id), data);
+        return;
+      } catch (e) { handleFirebaseError(e, 'updateFeedback'); }
+    }
+    const current = getLocal<FeedbackItem[]>(STORAGE_KEYS.FEEDBACK, []);
+    const updated = current.map(f => f.id === item.id ? item : f);
+    setLocal(STORAGE_KEYS.FEEDBACK, updated);
+  },
+
   async deleteFeedback(id: string): Promise<void> {
     if (isFirebaseConfigured && db) {
       try {

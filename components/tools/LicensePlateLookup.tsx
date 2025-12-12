@@ -125,7 +125,7 @@ export const LicensePlateLookup: React.FC = () => {
             title="Ayuda / Formatos"
           >
             <HelpCircle className="w-4 h-4 mr-2" />
-            Ayuda
+            <span className="hidden sm:inline">Ayuda</span>
           </button>
         </div>
 
@@ -176,7 +176,7 @@ export const LicensePlateLookup: React.FC = () => {
                       onKeyDown={handleKeyDown}
                       maxLength={7}
                       placeholder="AA123BB"
-                      className={`w-full text-center text-4xl font-mono font-bold uppercase outline-none bg-transparent pt-4 pb-2 tracking-widest ${
+                      className={`w-full text-center text-3xl sm:text-4xl font-mono font-bold uppercase outline-none bg-transparent pt-4 pb-2 tracking-widest ${
                          !plateInput ? 'placeholder-gray-200' : 'text-gray-800'
                       }`}
                     />

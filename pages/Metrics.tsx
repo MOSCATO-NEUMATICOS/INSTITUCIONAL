@@ -1,17 +1,18 @@
 
 import React from 'react';
 import { BarChart3, HardHat, Calendar, TrendingUp, MapPin, PieChart, Activity } from 'lucide-react';
+import { SectionHero } from '../components/SectionHero';
 
 export const Metrics: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="text-center mb-12">
-        <div className="inline-flex items-center justify-center p-3 bg-brand-100 rounded-full mb-4">
-          <BarChart3 className="w-10 h-10 text-brand-600" />
-        </div>
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Tablero de Métricas</h2>
-        <p className="mt-2 text-xl text-gray-500">Indicadores clave de rendimiento (KPIs) en tiempo real.</p>
-      </div>
+      
+      <SectionHero
+        title="Tablero de Métricas"
+        subtitle="Indicadores clave de rendimiento (KPIs) en tiempo real para el seguimiento de ventas y productividad."
+        badgeText="Business Intelligence"
+        badgeIcon={BarChart3}
+      />
 
       {/* Construction Card */}
       <div className="bg-white rounded-2xl shadow-xl border-t-8 border-gold-400 overflow-hidden relative animate-fade-in">

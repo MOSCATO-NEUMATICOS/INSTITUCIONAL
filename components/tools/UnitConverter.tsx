@@ -87,8 +87,8 @@ export const UnitConverter: React.FC = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-            <div>
+          <div className="flex flex-col md:flex-row gap-6 items-end">
+            <div className="w-full">
               <label className="block text-sm font-bold text-gray-700 mb-2">
                 Ingrese valor en {inputUnit}
               </label>
@@ -99,7 +99,7 @@ export const UnitConverter: React.FC = () => {
                   onChange={(e) => setPressureInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="0.00"
-                  className="bg-white text-gray-900 focus:ring-brand-500 focus:border-brand-500 block w-full pl-4 pr-12 text-xl border-gray-300 rounded-md py-3 font-mono border"
+                  className="bg-white text-gray-900 focus:ring-brand-500 focus:border-brand-500 block w-full pl-4 pr-12 text-3xl md:text-xl border-gray-300 rounded-md py-3 font-mono border"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm font-bold">{inputUnit}</span>
@@ -107,10 +107,10 @@ export const UnitConverter: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 w-full md:w-auto">
               <button
                 onClick={handleCalculate}
-                className="flex-1 bg-gold-400 hover:bg-gold-500 text-brand-900 font-bold py-3 px-4 rounded-md shadow-sm transition-colors flex items-center justify-center"
+                className="flex-1 bg-gold-400 hover:bg-gold-500 text-brand-900 font-bold py-3 px-4 rounded-md shadow-sm transition-colors flex items-center justify-center whitespace-nowrap"
               >
                 <Calculator className="w-5 h-5 mr-2" />
                 Calcular
@@ -126,19 +126,19 @@ export const UnitConverter: React.FC = () => {
           </div>
 
           {/* Results Display */}
-          <div className={`mt-8 transition-all duration-300 overflow-hidden ${results ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className="grid grid-cols-3 gap-4">
+          <div className={`mt-8 transition-all duration-300 overflow-hidden ${results ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className={`p-4 rounded-lg border shadow-sm text-center ${inputUnit === 'PSI' ? 'bg-brand-50 border-brand-200 ring-2 ring-brand-100' : 'bg-white border-gray-200'}`}>
                 <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">PSI</span>
-                <span className="block text-2xl font-bold text-brand-600 mt-1">{results?.psi}</span>
+                <span className="block text-3xl font-bold text-brand-600 mt-1">{results?.psi}</span>
               </div>
               <div className={`p-4 rounded-lg border shadow-sm text-center ${inputUnit === 'BAR' ? 'bg-brand-50 border-brand-200 ring-2 ring-brand-100' : 'bg-white border-gray-200'}`}>
                 <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">BAR</span>
-                <span className="block text-2xl font-bold text-brand-600 mt-1">{results?.bar}</span>
+                <span className="block text-3xl font-bold text-brand-600 mt-1">{results?.bar}</span>
               </div>
               <div className={`p-4 rounded-lg border shadow-sm text-center ${inputUnit === 'KPA' ? 'bg-brand-50 border-brand-200 ring-2 ring-brand-100' : 'bg-white border-gray-200'}`}>
                 <span className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">kPa</span>
-                <span className="block text-2xl font-bold text-brand-600 mt-1">{results?.kpa}</span>
+                <span className="block text-3xl font-bold text-brand-600 mt-1">{results?.kpa}</span>
               </div>
             </div>
           </div>
