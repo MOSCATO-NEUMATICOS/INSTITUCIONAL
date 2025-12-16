@@ -9,6 +9,7 @@ import { AdminFeedback } from '../components/admin/AdminFeedback';
 import { AdminSuppliers } from '../components/admin/AdminSuppliers';
 import { AdminSystem } from '../components/admin/AdminSystem';
 import { SectionHero } from '../components/SectionHero';
+import { storageService } from '../services/storage';
 
 interface AdminProps {
   manuals: Manual[];
@@ -66,6 +67,11 @@ export const Admin: React.FC<AdminProps> = ({
       setLoginError('La contraseña ingresada es incorrecta.');
       setPassword(''); 
     }
+  };
+
+  // Clear History Handler
+  const handleClearHistory = async () => {
+    await storageService.clearVisits();
   };
 
   if (!isAuthenticated) {
@@ -203,6 +209,7 @@ export const Admin: React.FC<AdminProps> = ({
               onAddIpAlias={onAddIpAlias}
               onDeleteIpAlias={onDeleteIpAlias}
               onImportData={onImportData}
+              onClearHistory={handleClearHistory}
               fullDataExport={{ manuals, news, feedbackItems }} 
             />
           )}

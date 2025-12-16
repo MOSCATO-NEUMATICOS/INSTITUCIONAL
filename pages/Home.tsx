@@ -12,23 +12,42 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
   
   const getDaysDifference = (dateStr: string) => {
     try {
-      // Date format is dd/mm/yyyy from storage
-      const [day, month, year] = dateStr.split('/');
-      const itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!dateStr) return 0;
+      // Date format is strictly dd/mm/yyyy from storage
+      const [day, month, year] = dateStr.split('/').map(Number);
+      
+      // Validar fecha
+      if (!day || !month || !year) return 0;
+
+      // Usar Mediodía (12:00) para evitar problemas de huso horario o DST al restar fechas
+      const itemDate = new Date(year, month - 1, day, 12, 0, 0);
       const now = new Date();
-      const diffTime = Math.abs(now.getTime() - itemDate.getTime());
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      now.setHours(12, 0, 0, 0);
+      
+      // Calculate difference in milliseconds
+      const diffTime = now.getTime() - itemDate.getTime();
+      
+      // Convert to days using floor
+      // Si el item es del futuro (error de fecha), dará negativo, lo cual es <= duración, así que se muestra.
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24));
     } catch (e) {
-      return 0;
+      return 0; // Ante error, asumir 0 días para que se muestre
     }
   };
 
   // 1. Filter out expired news (Auto-delete logic)
   const activeNews = news.filter(item => {
-    if (!item.autoDelete || !item.autoDeleteDuration) return true; // Keep if no auto-delete
+    // Si no tiene activado autoDelete, mostrar siempre.
+    if (!item.autoDelete) return true; 
+    
     const diffDays = getDaysDifference(item.date);
-    // Keep if difference is less than or equal to configured duration
-    return diffDays <= item.autoDeleteDuration;
+    
+    // Asegurar que la duración sea un número y tenga un fallback
+    const duration = Number(item.autoDeleteDuration) || 30;
+    
+    // Mantener si la diferencia de días es menor o igual a la duración
+    // Ejemplo: Creado hoy (diff 0) <= Duración 5 -> TRUE (Se muestra)
+    return diffDays <= duration;
   });
 
   // 2. Determine highlights based on custom duration
@@ -36,8 +55,7 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
     if (!item.highlight) return false;
     
     const diffDays = getDaysDifference(item.date);
-    // Use custom duration or default to 15 days
-    const duration = item.highlightDuration || 15;
+    const duration = Number(item.highlightDuration) || 15;
     
     return diffDays <= duration;
   };
@@ -319,11 +337,6 @@ export const Home: React.FC<HomeProps> = ({ news }) => {
                          <div className="flex items-center justify-between">
                            <p className="text-lg font-bold text-brand-800 dark:text-brand-300 truncate group-hover:text-brand-600 dark:group-hover:text-white transition-colors">{item.title}</p>
                            <div className="ml-2 flex-shrink-0 flex items-center gap-2">
-                             {item.autoDelete && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-400 dark:bg-red-900/30 dark:text-red-300 border border-red-100 dark:border-red-900" title="Auto-eliminación activa">
-                                  <Clock className="w-3 h-3 mr-1" /> Expira pronto
-                                </span>
-                             )}
                              <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${
                                item.category.includes('Ventas') ? 'bg-gold-100 text-yellow-800 border-gold-200 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-700' :
                                item.category.includes('Taller') ? 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700' :

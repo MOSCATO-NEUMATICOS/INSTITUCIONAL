@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { NewsItem } from '../../types';
-import { Plus, Edit2, X, Save, Star, Trash2, Clock, CalendarX } from 'lucide-react';
+import { Plus, Edit2, X, Save, Star, Trash2, Clock, CalendarX, HelpCircle, Info } from 'lucide-react';
 
 interface AdminNewsProps {
   news: NewsItem[];
@@ -21,6 +21,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
     autoDeleteDuration: 30
   });
   const [editingNewsId, setEditingNewsId] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleEditNews = (item: NewsItem) => {
     setNewNews({ 
@@ -57,9 +58,10 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
       description: newNews.description!,
       category: newNews.category || 'General',
       highlight: newNews.highlight || false,
-      highlightDuration: newNews.highlight ? (newNews.highlightDuration || 15) : undefined,
+      highlightDuration: Number(newNews.highlightDuration) || 15,
       autoDelete: newNews.autoDelete || false,
-      autoDeleteDuration: newNews.autoDelete ? (newNews.autoDeleteDuration || 30) : undefined
+      autoDeleteDuration: Number(newNews.autoDeleteDuration) || 30,
+      timestamp: Date.now() // Save creation time for sorting
     };
 
     if (editingNewsId) {
@@ -68,14 +70,22 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
       const updatedNews: NewsItem = {
         ...existingItem!, // Mantener fecha original y otros datos
         ...baseData,
+        timestamp: existingItem?.timestamp || Date.now(), // Preserve timestamp if exists
         id: editingNewsId
       };
       onUpdateNews(updatedNews);
       cancelEditNews();
     } else {
+      // Create manual date string to ensure dd/mm/yyyy format regardless of locale
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      const formattedDate = `${dd}/${mm}/${yyyy}`;
+
       const newsItem: NewsItem = {
         id: Date.now().toString(),
-        date: new Date().toLocaleDateString('es-AR'),
+        date: formattedDate,
         ...baseData
       };
       onAddNews(newsItem);
@@ -95,17 +105,37 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
         {/* Form News */}
         <div className={`bg-gray-50 p-6 rounded-lg border h-fit transition-colors ${editingNewsId ? 'border-orange-400 ring-4 ring-orange-50' : 'border-gray-200'}`}>
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-          <span className="flex items-center">
-            {editingNewsId ? <Edit2 className="w-5 h-5 mr-2 text-orange-500" /> : <Plus className="w-5 h-5 mr-2" />}
-            {editingNewsId ? 'Editar Novedad' : 'Agregar Novedad'}
-          </span>
-          {editingNewsId && (
-            <button onClick={cancelEditNews} className="text-gray-400 hover:text-gray-600">
-              <X className="w-5 h-5" />
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-lg font-bold text-gray-900 flex items-center">
+            <span className="flex items-center">
+              {editingNewsId ? <Edit2 className="w-5 h-5 mr-2 text-orange-500" /> : <Plus className="w-5 h-5 mr-2" />}
+              {editingNewsId ? 'Editar Novedad' : 'Agregar Novedad'}
+            </span>
+          </h3>
+          <div className="flex gap-2">
+            <button onClick={() => setShowHelp(!showHelp)} className="text-brand-500 hover:text-brand-700" title="Ayuda de configuración">
+              <HelpCircle className="w-5 h-5" />
             </button>
-          )}
-        </h3>
+            {editingNewsId && (
+              <button onClick={cancelEditNews} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* HELP PANEL */}
+        {showHelp && (
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 relative animate-fade-in">
+             <button onClick={() => setShowHelp(false)} className="absolute top-1 right-1 text-blue-400"><X className="w-4 h-4"/></button>
+             <h4 className="font-bold mb-1 flex items-center"><Info className="w-3 h-3 mr-1"/> Configuración Avanzada:</h4>
+             <ul className="list-disc list-inside space-y-1">
+               <li><strong>Destacada:</strong> Muestra la noticia en tamaño grande y con borde dorado al principio de la página. Ideal para anuncios muy importantes.</li>
+               <li><strong>Auto-Eliminación:</strong> Borra la noticia automáticamente después de X días. Útil para avisos temporales (ej: "Asado el viernes") para no ensuciar el muro.</li>
+             </ul>
+          </div>
+        )}
+
         <form onSubmit={submitNews} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Título</label>
@@ -166,7 +196,8 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
                     type="number" 
                     min="1"
                     max="365"
-                    value={newNews.highlightDuration}
+                    value={newNews.highlightDuration || ''}
+                    placeholder="15"
                     onChange={(e) => setNewNews({...newNews, highlightDuration: parseInt(e.target.value) || 15})}
                     className="w-20 text-xs border-gray-300 rounded p-1 border text-center font-bold"
                   />
@@ -200,7 +231,8 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
                     type="number" 
                     min="1"
                     max="365"
-                    value={newNews.autoDeleteDuration}
+                    value={newNews.autoDeleteDuration || ''}
+                    placeholder="30"
                     onChange={(e) => setNewNews({...newNews, autoDeleteDuration: parseInt(e.target.value) || 30})}
                     className="w-20 text-xs border-gray-300 rounded p-1 border text-center font-bold"
                   />

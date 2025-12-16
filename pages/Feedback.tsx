@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Send, User, UserX, CheckCircle, Loader2, MessageSquare } from 'lucide-react';
+import { Send, User, UserX, CheckCircle, Loader2, MessageSquare, HelpCircle, X, Info, ShieldCheck } from 'lucide-react';
 import { FeedbackItem } from '../types';
 import { SectionHero } from '../components/SectionHero';
 
@@ -14,6 +14,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +57,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-fade-in">
       
       <SectionHero
         title="Buzón de Sugerencias"
@@ -67,13 +68,52 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
 
       <div className="max-w-3xl mx-auto">
         {!submitted ? (
-          <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
-            <div className="bg-brand-600 px-6 py-4">
+          <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100 relative">
+            
+            {/* Header with Help Button */}
+            <div className="bg-brand-600 px-6 py-4 flex justify-between items-center">
               <h3 className="text-white font-medium flex items-center">
                 {isAnonymous ? <UserX className="w-5 h-5 mr-2" /> : <User className="w-5 h-5 mr-2" />}
                 {isAnonymous ? 'Nuevo Mensaje Anónimo' : 'Nuevo Mensaje Identificado'}
               </h3>
+              <button 
+                onClick={() => setShowHelp(!showHelp)}
+                className="text-brand-200 hover:text-white transition-colors"
+                title="¿Cómo funciona?"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
             </div>
+
+            {/* Help Panel */}
+            {showHelp && (
+              <div className="bg-blue-50 border-b border-blue-100 p-6 animate-fade-in relative">
+                <button 
+                  onClick={() => setShowHelp(false)}
+                  className="absolute top-4 right-4 text-blue-400 hover:text-blue-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <h4 className="font-bold text-blue-800 mb-3 flex items-center">
+                  <Info className="w-5 h-5 mr-2" />
+                  Política de Uso y Privacidad
+                </h4>
+                <div className="text-sm text-blue-700 space-y-2">
+                  <p>
+                    <strong>¿Quién lee esto?</strong> Los mensajes llegan directamente a la administración general y recursos humanos.
+                  </p>
+                  <p className="flex items-start">
+                    <ShieldCheck className="w-4 h-4 mr-1.5 mt-0.5 flex-shrink-0" />
+                    <span>
+                      <strong>Garantía de Anonimato:</strong> Si activas el modo "Anónimo", el sistema no guarda tu nombre, IP ni ningún dato que pueda identificarte. Úsalo con responsabilidad para reclamos sensibles.
+                    </span>
+                  </p>
+                  <p>
+                    <strong>Identificado:</strong> Recomendamos usar tu nombre para sugerencias de mejora o pedidos, así podemos darte una respuesta o devolución directa.
+                  </p>
+                </div>
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="p-8 space-y-6" autoComplete="off">
               {/* Campo oculto para evitar que Chrome piense que es un login y sugiera contraseñas */}
@@ -85,7 +125,7 @@ export const Feedback: React.FC<FeedbackProps> = ({ onFeedbackSubmit }) => {
                    Los campos marcados son obligatorios para el envío.
                  </div>
                  
-                 <label className="flex items-center cursor-pointer">
+                 <label className="flex items-center cursor-pointer select-none">
                   <div className="relative">
                     <input 
                       type="checkbox" 

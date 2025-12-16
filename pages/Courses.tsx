@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Award, BookOpen, Calendar, CheckCircle2, GraduationCap, Medal, Plus, ExternalLink, User } from 'lucide-react';
+import { Award, BookOpen, Calendar, CheckCircle2, GraduationCap, Medal, Plus, ExternalLink, User, HelpCircle, X, Info } from 'lucide-react';
 import { EmployeeCourse, RecommendedCourse } from '../types';
 import { storageService } from '../services/storage';
 import { SectionHero } from '../components/SectionHero';
@@ -15,6 +15,9 @@ export const Courses: React.FC = () => {
   const [newPlatform, setNewPlatform] = useState('');
   const [hasCertificate, setHasCertificate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // UI State
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -115,10 +118,48 @@ export const Courses: React.FC = () => {
         {/* LEFT: ADD COURSE FORM */}
         <div className="lg:col-span-1">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 sticky top-24 transition-colors">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-              <Plus className="w-6 h-6 mr-2 text-brand-600 dark:text-brand-400" />
-              Registrar Nuevo Curso
-            </h3>
+            
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                <Plus className="w-6 h-6 mr-2 text-brand-600 dark:text-brand-400" />
+                Registrar Nuevo Curso
+              </h3>
+              <button 
+                onClick={() => setShowHelp(!showHelp)}
+                className="text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-200 transition-colors p-1 rounded-full hover:bg-brand-50 dark:hover:bg-brand-900/30"
+                title="Ayuda e Instrucciones"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* HELP PANEL */}
+            {showHelp && (
+              <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 animate-fade-in relative text-sm">
+                <button 
+                  onClick={() => setShowHelp(false)}
+                  className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <h4 className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center">
+                  <Info className="w-4 h-4 mr-1.5" />
+                  ¿Cómo funciona?
+                </h4>
+                <div className="space-y-2 text-blue-700 dark:text-blue-200 text-xs">
+                  <p>
+                    <strong>¿Qué registrar?</strong> Cursos técnicos (Goodyear, Monroe, Corven), capacitaciones de seguridad, o tutoriales técnicos extensos (YouTube) que aporten valor a tu trabajo.
+                  </p>
+                  <p>
+                    <strong>Certificados:</strong> Si el curso otorga diploma, marca la casilla correspondiente. Esto suma más valor a tu legajo.
+                  </p>
+                  <p>
+                    <strong>Objetivo:</strong> Este registro nos ayuda a reconocer tu esfuerzo y planificar futuras capacitaciones.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Tu Nombre Completo</label>

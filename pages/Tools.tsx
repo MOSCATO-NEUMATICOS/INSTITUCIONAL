@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Timer, Wrench, ArrowRight, Activity, DollarSign, Database, ChevronRight, Car, Calculator } from 'lucide-react';
+import { Timer, Wrench, ArrowRight, Activity, DollarSign, Database, ChevronRight, Car, Calculator, Gauge } from 'lucide-react';
 import { OEGuide } from '../components/tools/OEGuide';
 import { UnitConverter } from '../components/tools/UnitConverter';
 import { CashBox } from '../components/tools/CashBox';
@@ -8,10 +8,11 @@ import { TireComparator } from '../components/tools/TireComparator';
 import { LaborTime } from '../components/tools/LaborTime';
 import { LicensePlateLookup } from '../components/tools/LicensePlateLookup';
 import { CostCalculator } from '../components/tools/CostCalculator';
+import { TorqueFinder } from '../components/tools/TorqueFinder';
 import { Page, Supplier } from '../types';
 import { SectionHero } from '../components/SectionHero';
 
-type ToolId = 'oe_guide' | 'converter' | 'cash_box' | 'tire_comparator' | 'plate_lookup' | 'labor_time' | 'cost_calculator';
+type ToolId = 'oe_guide' | 'converter' | 'cash_box' | 'tire_comparator' | 'plate_lookup' | 'labor_time' | 'cost_calculator' | 'torque_finder';
 
 // Menu ordered alphabetically by label for better UX
 const TOOLS_MENU = [
@@ -22,6 +23,7 @@ const TOOLS_MENU = [
   { id: 'tire_comparator', label: 'Comparador Neumáticos', icon: Activity, color: 'text-gold-600 dark:text-gold-400', bg: 'bg-gold-100 dark:bg-yellow-900/30', border: 'border-gold-600 dark:border-gold-500' },
   { id: 'converter', label: 'Convertidor de Presión', icon: Wrench, color: 'text-brand-600 dark:text-brand-400', bg: 'bg-brand-100 dark:bg-brand-900/30', border: 'border-brand-600 dark:border-brand-500' },
   { id: 'oe_guide', label: 'Guía Equipamiento Original', icon: Database, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30', border: 'border-blue-600 dark:border-blue-500' },
+  { id: 'torque_finder', label: 'Torque y Antirrobos', icon: Gauge, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-900/30', border: 'border-orange-600 dark:border-orange-500' },
 ] as const;
 
 interface ToolsProps {
@@ -90,6 +92,7 @@ export const Tools: React.FC<ToolsProps> = ({ onNavigate, suppliers = [] }) => {
           {activeTool === 'tire_comparator' && <TireComparator />}
           {activeTool === 'labor_time' && <LaborTime />}
           {activeTool === 'cost_calculator' && <CostCalculator suppliers={suppliers} />}
+          {activeTool === 'torque_finder' && <TorqueFinder />}
         </div>
       </div>
     </div>

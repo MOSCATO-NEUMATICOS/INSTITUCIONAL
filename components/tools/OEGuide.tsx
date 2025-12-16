@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Database, Search, Car, Disc, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Database, Search, Car, Disc, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, HelpCircle, X } from 'lucide-react';
 
 // --- ORIGINAL EQUIPMENT DATA (From PDF) ---
 interface OERecord {
@@ -100,6 +100,7 @@ type SortDirection = 'asc' | 'desc';
 
 export const OEGuide: React.FC = () => {
   const [searchTermOE, setSearchTermOE] = useState('');
+  const [showHelp, setShowHelp] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey | null; direction: SortDirection }>({ 
     key: null, 
     direction: 'asc' 
@@ -179,20 +180,51 @@ export const OEGuide: React.FC = () => {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative w-full md:w-80">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            {/* Search Bar */}
+            <div className="relative flex-grow md:flex-grow-0 md:w-64">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                type="text"
+                value={searchTermOE}
+                onChange={(e) => setSearchTermOE(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm transition-colors"
+                placeholder="Buscar auto, medida..."
+                />
             </div>
-            <input
-              type="text"
-              value={searchTermOE}
-              onChange={(e) => setSearchTermOE(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm transition-colors"
-              placeholder="Buscar por auto, medida o marca..."
-            />
+            {/* Help Button */}
+            <button
+                onClick={() => setShowHelp(!showHelp)}
+                className="flex items-center justify-center p-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+                title="Ayuda"
+            >
+                <HelpCircle className="w-5 h-5" />
+            </button>
           </div>
         </div>
+
+        {/* HELP SECTION */}
+        {showHelp && (
+          <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 animate-fade-in relative">
+            <button 
+              onClick={() => setShowHelp(false)}
+              className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h4 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-2">Sobre esta herramienta</h4>
+            <p className="text-xs text-blue-700 dark:text-blue-200 mb-2">
+              Esta base de datos contiene los neumáticos homologados como equipo original (OE) por los fabricantes de vehículos.
+            </p>
+            <ul className="text-xs text-blue-700 dark:text-blue-200 list-disc list-inside space-y-1">
+              <li>Utilice el buscador para filtrar por <strong>Modelo del vehículo</strong> (ej: "Focus"), <strong>Medida</strong> (ej: "205/55") o <strong>Marca del neumático</strong>.</li>
+              <li>Haga clic en los encabezados de la tabla para ordenar los resultados.</li>
+              <li>Esta información es útil para ofrecer al cliente la reposición exacta de lo que trajo su vehículo de fábrica.</li>
+            </ul>
+          </div>
+        )}
 
         {/* RESULTS: TABLE FOR DESKTOP, CARDS FOR MOBILE */}
         

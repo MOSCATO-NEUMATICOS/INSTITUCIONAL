@@ -12,10 +12,6 @@ const CATALOG = {
         "Q5": { "parts": { "amortiguadores delanteros": 1.75, "amortiguadores traseros": 1.0, "axiales": 1.5, "bieleta": 1.0, "bujes barra estabilizadora": 0.5, "bujes parrilla": 0.88, "parrilla": 1.5, "rodamiento rueda delantera": 2.0, "pastillas EJE": 1.5, "discos y pastillas EJE": 2.0, "extremo": 1.0, "rotula inferior": 2.0, "rotula superior": 2.0, "esparrago de rueda": 1.0, "soporte motor": 2.0, "Homocinetica": 2.0 } }
       }
     },
-    // ... [Rest of catalog data kept as is, but assuming it's available in context] ...
-    // For brevity in this update, I'm including the full structure logic but assuming the huge JSON 
-    // is the same as previous file. In a real update I'd output the full JSON.
-    // Re-inserting the FULL JSON to ensure no data loss.
     "BMW": {
       "models": {
         "Serie 1": { "parts": { "amortiguadores delanteros": 1.75, "amortiguadores traseros": 1.0, "axiales": 1.5, "bieleta": 1.0, "bujes barra estabilizadora": 0.5, "bujes parrilla": 0.88, "parrilla": 1.5, "rodamiento rueda delantera": 2.0, "pastillas EJE": 1.5, "discos y pastillas EJE": 2.0, "extremo": 1.0, "rotula inferior": 2.0, "rotula superior": 2.0, "soporte motor": 2.0, "Homocinetica": 2.0 } },
@@ -55,7 +51,6 @@ const CATALOG = {
         "Zafira": { "parts": { "amortiguadores delanteros": 1.25, "amortiguadores traseros": 0.75, "axiales": 1.0, "bieleta": 0.7, "bujes barra estabilizadora": 0.5, "bujes parrilla": 0.75, "parrilla": 1.25, "rodamiento rueda delantera": 1.5, "pastillas EJE": 1.0, "discos y pastillas EJE": 1.5, "extremo": 1.0, "rotula inferior": 1.5, "esparrago de rueda": 1.0, "soporte motor": 1.5, "Homocinetica": 1.5 } }
       }
     },
-    // ... [Other brands from original code] ...
     "Citroën": {
       "models": {
         "Berlingo": { "parts": { "amortiguadores delanteros": 1.25, "amortiguadores traseros": 0.75, "axiales": 1.0, "bieleta": 0.7, "bujes barra estabilizadora": 0.5, "bujes parrilla": 0.75, "parrilla": 1.25, "rodamiento rueda delantera": 1.5, "pastillas EJE": 1.0, "discos y pastillas EJE": 1.5, "extremo": 1.0, "rotula inferior": 1.5, "rotula superior": 1.5, "esparrago de rueda": 1.0, "soporte motor": 1.5, "Homocinetica": 1.5 } },
@@ -263,6 +258,13 @@ const CATALOG = {
   }
 };
 
+// Parts strictly limited to max 2 units
+const LIMITED_PARTS_MAX_2 = [
+  "amortiguadores delanteros", "amortiguadores traseros", "axiales",
+  "discos y pastillas", "homocinetica", "pastillas",
+  "rodamiento", "rotula", "extremo"
+];
+
 interface SelectedPart {
   id: string;
   name: string;
@@ -343,7 +345,6 @@ export const LaborTime: React.FC = () => {
 
     // Non-sided specific list
     if (
-      lowerName.includes('buje') && !lowerName.includes('parrilla') || // Bujes parrilla are typically sided or per arm
       lowerName.includes('soporte motor') || 
       lowerName.includes('esparrago')
     ) {
@@ -394,24 +395,45 @@ export const LaborTime: React.FC = () => {
   const updateSide = (id: string, newSide: 'left' | 'right' | 'both') => {
     setSelectedParts(selectedParts.map(p => {
       if (p.id === id) {
-        // If selecting both, quantity is 2. If L/R, quantity is 1.
-        const newQty = newSide === 'both' ? 2 : 1;
+        // If selecting both, quantity is 2 (normally). 
+        // NOTE: If part is "bujes parrilla", selecting both *could* imply 4 if user wants, handled in quantity update.
+        // For standard behavior on toggle, reset to 2 if coming from L/R.
+        // If already 4 (bujes), keep 4.
+        let newQty = 1;
+        if (newSide === 'both') {
+           newQty = p.quantity >= 2 ? p.quantity : 2; 
+        } else {
+           newQty = 1; // Single side is always 1
+        }
         return { ...p, side: newSide, quantity: newQty };
       }
       return p;
     }));
   };
   
-  const updateQuantity = (id: string, qty: number, partType: PartType) => {
-      if (qty < 1) return;
-      if (qty > 4) qty = 4;
+  const updateQuantity = (id: string, qty: number, partType: PartType, partName: string) => {
+      const lowerName = partName.toLowerCase();
+      let maxQty = 4;
+
+      // Rule: Strictly limited parts capped at 2
+      if (LIMITED_PARTS_MAX_2.some(k => lowerName.includes(k))) {
+        maxQty = 2;
+      }
+
+      // Rule: Bujes allow 4
+      if (lowerName.includes('bujes')) {
+        maxQty = 4;
+      }
+
+      if (qty < 1) qty = 1;
+      if (qty > maxQty) qty = maxQty;
 
       setSelectedParts(selectedParts.map(p => {
         if (p.id === id) {
           // Logic for Sided Parts auto-toggle
           let newSide = p.side;
           if (partType === 'sided') {
-             if (qty === 2) newSide = 'both';
+             if (qty >= 2) newSide = 'both';
              else if (qty === 1 && newSide === 'both') newSide = 'left'; // Default back to left if reducing from both
           }
           return { ...p, quantity: qty, side: newSide };
@@ -510,12 +532,17 @@ export const LaborTime: React.FC = () => {
       };
 
       if (p.side === 'both') {
-        partTime += calcSideTime('left');
-        partTime += calcSideTime('right');
+        // Special logic for high quantities (e.g. 4 bujes -> 2 per side)
+        // If quantity is > 2, we assume even distribution.
+        const qtyPerSide = p.quantity >= 2 ? p.quantity / 2 : 1; 
+        
+        // Multiplying base time result by quantity per side (e.g. 0.5hr * 2 bujes = 1hr left side)
+        partTime += calcSideTime('left') * qtyPerSide;
+        partTime += calcSideTime('right') * qtyPerSide;
       } else if (p.side === 'left') {
-        partTime += calcSideTime('left');
+        partTime += calcSideTime('left') * p.quantity;
       } else if (p.side === 'right') {
-        partTime += calcSideTime('right');
+        partTime += calcSideTime('right') * p.quantity;
       } else {
         // Non-sided parts
         partTime = p.baseTime * p.quantity;
@@ -581,22 +608,22 @@ export const LaborTime: React.FC = () => {
   const totalPrice = finalTotalTime * hourlyRate;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-lg border-t-4 border-t-gray-600 animate-fade-in flex flex-col h-full">
+    <div className="rounded-xl border border-gray-200 bg-white dark:bg-gray-800 dark:border-gray-700 shadow-lg border-t-4 border-t-gray-600 animate-fade-in flex flex-col h-full transition-colors">
       <div className="p-6 md:p-8 flex-grow">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <div className="h-12 w-12 bg-gray-100 rounded-lg flex items-center justify-center mr-4 text-gray-700">
+            <div className="h-12 w-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center mr-4 text-gray-700 dark:text-gray-300">
               <Timer className="h-7 w-7" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">Calculadora de Tiempos</h3>
-              <p className="text-sm text-gray-500">Estimación de mano de obra según estándares de fábrica.</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Calculadora de Tiempos</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Estimación de mano de obra según estándares de fábrica.</p>
             </div>
           </div>
           <div className="flex space-x-2">
             <button
               onClick={() => setShowHelp(!showHelp)}
-              className="flex items-center text-sm font-semibold text-brand-600 hover:text-brand-800 transition-colors bg-brand-50 px-3 py-2 rounded-md border border-brand-100 hover:border-brand-200"
+              className="flex items-center text-sm font-semibold text-brand-600 hover:text-brand-800 dark:text-brand-400 dark:hover:text-brand-300 transition-colors bg-brand-50 dark:bg-brand-900/30 px-3 py-2 rounded-md border border-brand-100 dark:border-brand-800 hover:border-brand-200"
               title="Ayuda / Instrucciones"
             >
               <HelpCircle className="w-4 h-4 mr-2" />
@@ -604,7 +631,7 @@ export const LaborTime: React.FC = () => {
             </button>
             <button 
               onClick={handleReset}
-              className="flex items-center text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors bg-gray-50 px-3 py-2 rounded-md border border-gray-200 hover:bg-red-50 hover:border-red-200"
+              className="flex items-center text-sm font-semibold text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors bg-gray-50 dark:bg-gray-700 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/20"
               title="Reiniciar todo"
             >
               <Trash2 className="w-4 h-4 mr-2" />
@@ -615,21 +642,21 @@ export const LaborTime: React.FC = () => {
 
         {/* --- HELP SECTION --- */}
         {showHelp && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in relative">
+          <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 animate-fade-in relative">
             <button 
               onClick={() => setShowHelp(false)}
               className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
             >
               <X className="w-5 h-5" />
             </button>
-            <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center">
+            <h4 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center">
               <AlertCircle className="w-4 h-4 mr-2" />
               ¿Cómo funciona la Sinergia Inteligente?
             </h4>
-            <p className="text-xs text-blue-700 mb-2">
+            <p className="text-xs text-blue-700 dark:text-blue-200 mb-2">
               El sistema detecta automáticamente cuando se realizan trabajos superpuestos en el mismo lado del vehículo y descuenta el tiempo duplicado.
             </p>
-            <ul className="text-xs text-blue-600 list-disc list-inside space-y-1 ml-1">
+            <ul className="text-xs text-blue-600 dark:text-blue-300 list-disc list-inside space-y-1 ml-1">
               <li><strong>Ejemplo 1:</strong> Si cambias <em>Amortiguadores</em>, el cambio de <em>Bieletas</em> se cobra al 50% (ya que están accesibles).</li>
               <li><strong>Ejemplo 2:</strong> Si cambias <em>Axiales</em> o <em>Amortiguadores</em>, el cambio de <em>Extremos</em> es GRATIS (0 hs) porque es parte del mismo desarme.</li>
               <li><strong>Ejemplo 3:</strong> Si cambias la <em>Parrilla Completa</em>, la mano de obra de la <em>Rótula</em> queda bonificada.</li>
@@ -642,15 +669,15 @@ export const LaborTime: React.FC = () => {
           {/* LEFT COLUMN: SELECTORS */}
           <div className="lg:col-span-1 space-y-6">
             {/* Vehicle Selection - FIXED WHITE BACKGROUND */}
-            <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-              <h4 className="font-bold text-gray-800 mb-4 flex items-center border-b pb-2">
+            <div className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-colors">
+              <h4 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center border-b border-gray-200 dark:border-gray-700 pb-2">
                 <Car className="w-4 h-4 mr-2" /> Vehículo
               </h4>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">Marca</label>
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">Marca</label>
                   <select 
-                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-2 px-3 text-gray-900 font-medium"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-2 px-3 text-gray-900 dark:text-white font-medium"
                     value={selectedBrand}
                     onChange={(e) => {
                       setSelectedBrand(e.target.value);
@@ -665,9 +692,9 @@ export const LaborTime: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-600 mb-1 uppercase tracking-wide">Modelo</label>
+                  <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">Modelo</label>
                   <select 
-                    className="w-full bg-white border border-gray-300 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-2 px-3 text-gray-900 font-medium disabled:bg-gray-50 disabled:text-gray-400"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-2 px-3 text-gray-900 dark:text-white font-medium disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
                     value={selectedModel}
                     onChange={(e) => {
                       setSelectedModel(e.target.value);
@@ -685,9 +712,9 @@ export const LaborTime: React.FC = () => {
             </div>
 
             {/* Parts Picker */}
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex flex-col h-[450px] shadow-sm">
-               <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                 <h4 className="font-bold text-gray-800 text-sm mb-2">Catálogo de Piezas</h4>
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden flex flex-col h-[450px] shadow-sm transition-colors">
+               <div className="bg-gray-50 dark:bg-gray-900/50 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                 <h4 className="font-bold text-gray-800 dark:text-white text-sm mb-2">Catálogo de Piezas</h4>
                  <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
                       <Search className="h-3 w-3 text-gray-400" />
@@ -696,12 +723,12 @@ export const LaborTime: React.FC = () => {
                       type="text"
                       value={partSearchTerm}
                       onChange={(e) => setPartSearchTerm(e.target.value)}
-                      className="block w-full pl-8 pr-2 py-1.5 text-xs border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
+                      className="block w-full pl-8 pr-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500"
                       placeholder="Buscar repuesto..."
                     />
                  </div>
                </div>
-               <div className="overflow-y-auto p-1 flex-grow scrollbar-thin scrollbar-thumb-gray-300">
+               <div className="overflow-y-auto p-1 flex-grow scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                  {selectedBrand && selectedModel ? (
                     filteredParts.length > 0 ? (
                       <div className="space-y-1">
@@ -709,7 +736,7 @@ export const LaborTime: React.FC = () => {
                           <button
                             key={part}
                             onClick={() => handleAddPart(part)}
-                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 rounded flex justify-between items-center group transition-colors border border-transparent hover:border-brand-100"
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-brand-50 dark:hover:bg-brand-900/30 hover:text-brand-700 dark:hover:text-brand-300 rounded flex justify-between items-center group transition-colors border border-transparent hover:border-brand-100 dark:hover:border-brand-800"
                           >
                             <span className="capitalize truncate mr-2">{part}</span>
                             <Plus className="w-4 h-4 text-gray-300 group-hover:text-brand-500 flex-shrink-0" />
@@ -733,7 +760,7 @@ export const LaborTime: React.FC = () => {
 
           {/* RIGHT COLUMN: ESTIMATION */}
           <div className="lg:col-span-2 flex flex-col">
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col flex-grow overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm flex flex-col flex-grow overflow-hidden transition-colors">
               <div className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center">
                 <h4 className="font-bold flex items-center">
                    <Clock className="w-5 h-5 mr-2 text-gold-400" />
@@ -752,8 +779,8 @@ export const LaborTime: React.FC = () => {
                   <>
                     {/* Desktop View (Table) */}
                     <div className="hidden md:block">
-                      <table className="min-w-full divide-y divide-gray-100">
-                        <thead className="bg-gray-50 text-xs text-gray-500 uppercase font-semibold">
+                      <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-900/50 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
                           <tr>
                             <th className="px-4 py-3 text-left w-1/3">Pieza</th>
                             <th className="px-4 py-3 text-center w-1/6">Cant.</th>
@@ -762,28 +789,39 @@ export const LaborTime: React.FC = () => {
                             <th className="px-4 py-3 w-10"></th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                           {selectedParts.map((item) => {
                              const partType = getPartType(item.name);
                              const synergy = getSynergyStatus(item);
                              
-                             let displayTime = (item.baseTime * item.quantity).toFixed(2) + ' h';
-                             let timeClass = "font-bold text-gray-900";
+                             // Calculate display time based on smart total logic per line
+                             let calculatedLineTime = 0;
+                             if (item.side === 'both') {
+                                // Assume even split: half quantity left, half right.
+                                const qtyPerSide = item.quantity >= 2 ? item.quantity / 2 : 1;
+                                calculatedLineTime = (item.baseTime * qtyPerSide) * 2; // Simple base calc
+                             } else {
+                                calculatedLineTime = item.baseTime * item.quantity;
+                             }
+
+                             let displayTime = calculatedLineTime.toFixed(2) + ' h';
+                             let timeClass = "font-bold text-gray-900 dark:text-white";
                              
                              if (synergy.type === 'free') {
                                displayTime = "0.00 h";
-                               timeClass = "font-bold text-green-600";
+                               timeClass = "font-bold text-green-600 dark:text-green-400";
                              } else if (synergy.type === 'half') {
-                               displayTime = ((item.baseTime * item.quantity) * 0.5).toFixed(2) + ' h';
-                               timeClass = "font-bold text-blue-600";
+                               // Apply 50% discount to calculated line time
+                               displayTime = (calculatedLineTime * 0.5).toFixed(2) + ' h';
+                               timeClass = "font-bold text-blue-600 dark:text-blue-400";
                              }
 
                              return (
-                              <tr key={item.id} className={`hover:bg-gray-50 transition-colors ${synergy.type === 'free' ? 'bg-green-50/30' : synergy.type === 'half' ? 'bg-blue-50/30' : ''}`}>
-                                <td className="px-4 py-3 text-sm text-gray-800 font-medium capitalize align-middle">
+                              <tr key={item.id} className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${synergy.type === 'free' ? 'bg-green-50/30 dark:bg-green-900/10' : synergy.type === 'half' ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}>
+                                <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-200 font-medium capitalize align-middle">
                                   {item.name}
                                   {synergy.type !== 'none' && (
-                                    <div className={`text-[10px] font-bold flex items-center mt-1 ${synergy.type === 'free' ? 'text-green-600' : 'text-blue-600'}`}>
+                                    <div className={`text-[10px] font-bold flex items-center mt-1 ${synergy.type === 'free' ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`}>
                                       {synergy.type === 'free' ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Percent className="w-3 h-3 mr-1" />}
                                       {synergy.label}
                                     </div>
@@ -795,36 +833,36 @@ export const LaborTime: React.FC = () => {
                                      min="1" 
                                      max="4"
                                      value={item.quantity}
-                                     onChange={(e) => updateQuantity(item.id, parseInt(e.target.value), partType)}
-                                     className="w-12 text-center border border-gray-300 rounded text-sm font-bold py-1 focus:ring-brand-500 focus:border-brand-500"
+                                     onChange={(e) => updateQuantity(item.id, parseInt(e.target.value), partType, item.name)}
+                                     className="w-12 text-center border border-gray-300 dark:border-gray-600 rounded text-sm font-bold py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-brand-500 focus:border-brand-500"
                                    />
                                 </td>
                                 <td className="px-4 py-3 text-center align-middle">
                                    {partType === 'sided' ? (
-                                     <div className="inline-flex bg-gray-100 rounded-md p-0.5 shadow-inner">
+                                     <div className="inline-flex bg-gray-100 dark:bg-gray-700 rounded-md p-0.5 shadow-inner">
                                        <button 
                                          onClick={() => updateSide(item.id, 'left')}
-                                         className={`w-8 py-1 text-xs font-bold rounded transition-all ${item.side === 'left' ? 'bg-white text-brand-600 shadow-sm ring-1 ring-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
+                                         className={`w-8 py-1 text-xs font-bold rounded transition-all ${item.side === 'left' ? 'bg-white dark:bg-gray-600 text-brand-600 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-gray-500' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
                                          title="Izquierda"
                                        >
                                          Izq
                                        </button>
                                        <button 
                                          onClick={() => updateSide(item.id, 'right')}
-                                         className={`w-8 py-1 text-xs font-bold rounded transition-all ${item.side === 'right' ? 'bg-white text-brand-600 shadow-sm ring-1 ring-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
+                                         className={`w-8 py-1 text-xs font-bold rounded transition-all ${item.side === 'right' ? 'bg-white dark:bg-gray-600 text-brand-600 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-gray-500' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
                                          title="Derecha"
                                        >
                                          Der
                                        </button>
                                        <button 
                                           onClick={() => updateSide(item.id, 'both')}
-                                          className={`px-3 py-1 text-xs font-bold rounded transition-all ${item.side === 'both' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                                          className={`px-3 py-1 text-xs font-bold rounded transition-all ${item.side === 'both' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'}`}
                                        >
                                          Ambos
                                        </button>
                                      </div>
                                    ) : partType === 'axle' ? (
-                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300">
                                        Juego Eje
                                      </span>
                                    ) : (
@@ -857,19 +895,27 @@ export const LaborTime: React.FC = () => {
                          const partType = getPartType(item.name);
                          const synergy = getSynergyStatus(item);
                          
-                         let displayTime = (item.baseTime * item.quantity).toFixed(2) + ' h';
-                         let timeClass = "font-bold text-gray-900";
+                         let calculatedLineTime = 0;
+                         if (item.side === 'both') {
+                            const qtyPerSide = item.quantity >= 2 ? item.quantity / 2 : 1;
+                            calculatedLineTime = (item.baseTime * qtyPerSide) * 2;
+                         } else {
+                            calculatedLineTime = item.baseTime * item.quantity;
+                         }
+
+                         let displayTime = calculatedLineTime.toFixed(2) + ' h';
+                         let timeClass = "font-bold text-gray-900 dark:text-white";
                          
                          if (synergy.type === 'free') {
                            displayTime = "0.00 h";
-                           timeClass = "font-bold text-green-600";
+                           timeClass = "font-bold text-green-600 dark:text-green-400";
                          } else if (synergy.type === 'half') {
-                           displayTime = ((item.baseTime * item.quantity) * 0.5).toFixed(2) + ' h';
-                           timeClass = "font-bold text-blue-600";
+                           displayTime = (calculatedLineTime * 0.5).toFixed(2) + ' h';
+                           timeClass = "font-bold text-blue-600 dark:text-blue-400";
                          }
 
                          return (
-                          <div key={item.id} className={`bg-white rounded-lg border shadow-sm p-4 relative ${synergy.type === 'free' ? 'border-green-200 bg-green-50/20' : 'border-gray-200'}`}>
+                          <div key={item.id} className={`bg-white dark:bg-gray-800 rounded-lg border shadow-sm p-4 relative ${synergy.type === 'free' ? 'border-green-200 dark:border-green-800 bg-green-50/20 dark:bg-green-900/10' : 'border-gray-200 dark:border-gray-700'}`}>
                             <button 
                               onClick={() => handleRemovePart(item.id)}
                               className="absolute top-2 right-2 text-gray-300 hover:text-red-500 p-2"
@@ -877,10 +923,10 @@ export const LaborTime: React.FC = () => {
                               <Trash2 className="w-5 h-5" />
                             </button>
                             
-                            <h5 className="font-bold text-gray-800 capitalize pr-8">{item.name}</h5>
+                            <h5 className="font-bold text-gray-800 dark:text-gray-200 capitalize pr-8">{item.name}</h5>
                             
                             {synergy.type !== 'none' && (
-                              <div className={`text-xs font-bold flex items-center mt-1 mb-2 ${synergy.type === 'free' ? 'text-green-600' : 'text-blue-600'}`}>
+                              <div className={`text-xs font-bold flex items-center mt-1 mb-2 ${synergy.type === 'free' ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`}>
                                 {synergy.type === 'free' ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <Percent className="w-3 h-3 mr-1" />}
                                 {synergy.label}
                               </div>
@@ -894,23 +940,23 @@ export const LaborTime: React.FC = () => {
                                    min="1" 
                                    max="4"
                                    value={item.quantity}
-                                   onChange={(e) => updateQuantity(item.id, parseInt(e.target.value), partType)}
-                                   className="w-12 text-center border border-gray-300 rounded text-sm font-bold py-2 focus:ring-brand-500"
+                                   onChange={(e) => updateQuantity(item.id, parseInt(e.target.value), partType, item.name)}
+                                   className="w-12 text-center border border-gray-300 dark:border-gray-600 rounded text-sm font-bold py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-brand-500"
                                  />
                                  
                                  {partType === 'sided' && (
-                                   <div className="inline-flex bg-gray-100 rounded-md p-0.5">
+                                   <div className="inline-flex bg-gray-100 dark:bg-gray-700 rounded-md p-0.5">
                                      <button 
                                        onClick={() => updateSide(item.id, 'left')}
-                                       className={`px-2 py-1.5 text-xs font-bold rounded ${item.side === 'left' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400'}`}
+                                       className={`px-2 py-1.5 text-xs font-bold rounded ${item.side === 'left' ? 'bg-white dark:bg-gray-600 text-brand-600 dark:text-white shadow-sm' : 'text-gray-400 dark:text-gray-500'}`}
                                      >L</button>
                                      <button 
                                        onClick={() => updateSide(item.id, 'right')}
-                                       className={`px-2 py-1.5 text-xs font-bold rounded ${item.side === 'right' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-400'}`}
+                                       className={`px-2 py-1.5 text-xs font-bold rounded ${item.side === 'right' ? 'bg-white dark:bg-gray-600 text-brand-600 dark:text-white shadow-sm' : 'text-gray-400 dark:text-gray-500'}`}
                                      >R</button>
                                      <button 
                                         onClick={() => updateSide(item.id, 'both')}
-                                        className={`px-2 py-1.5 text-xs font-bold rounded ${item.side === 'both' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-400'}`}
+                                        className={`px-2 py-1.5 text-xs font-bold rounded ${item.side === 'both' ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-400 dark:text-gray-500'}`}
                                      >All</button>
                                    </div>
                                  )}
@@ -926,7 +972,7 @@ export const LaborTime: React.FC = () => {
                     </div>
                   </>
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-50 p-8">
+                  <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 opacity-50 p-8">
                      <Clock className="w-16 h-16 mb-4" />
                      <p>No hay trabajos seleccionados</p>
                   </div>
@@ -934,18 +980,18 @@ export const LaborTime: React.FC = () => {
               </div>
 
               {/* Footer Summary */}
-              <div className="bg-gray-50 p-6 border-t border-gray-200">
+              <div className="bg-gray-50 dark:bg-gray-900/50 p-6 border-t border-gray-200 dark:border-gray-700">
                  
                  {/* Synergy Adjuster */}
                  <div className="mb-6">
                     <div className="flex justify-between items-center mb-2">
                        <div className="flex items-center">
-                          <label className="text-xs font-bold text-gray-600 uppercase tracking-wide mr-2">Ajuste Manual</label>
+                          <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wide mr-2">Ajuste Manual</label>
                           <div className="group relative">
                              <AlertCircle className="w-3 h-3 text-gray-400 cursor-help" />
                           </div>
                        </div>
-                       <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded border border-brand-100">
+                       <span className="text-xs font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 px-2 py-0.5 rounded border border-brand-100 dark:border-brand-800">
                          -{synergyDiscount}%
                        </span>
                     </div>
@@ -956,16 +1002,16 @@ export const LaborTime: React.FC = () => {
                       step="5"
                       value={synergyDiscount} 
                       onChange={(e) => setSynergyDiscount(parseInt(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-600"
+                      className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-brand-600"
                     />
                  </div>
 
                  {/* Calculations and Price */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-200 pt-4 items-end">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-gray-200 dark:border-gray-700 pt-4 items-end">
                     
                     {/* Hourly Rate Input */}
                     <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                       <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                          Valor Hora ($)
                        </label>
                        <div className="relative rounded-md shadow-sm">
@@ -974,7 +1020,7 @@ export const LaborTime: React.FC = () => {
                          </div>
                          <input
                            type="number"
-                           className="focus:ring-brand-500 focus:border-brand-500 block w-full pl-9 sm:text-sm border-gray-300 rounded-md py-2 font-bold bg-white text-gray-900 placeholder-gray-400 border"
+                           className="focus:ring-brand-500 focus:border-brand-500 block w-full pl-9 sm:text-sm border-gray-300 dark:border-gray-600 rounded-md py-2 font-bold bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 border"
                            placeholder="0"
                            value={hourlyRate || ''}
                            onChange={(e) => setHourlyRate(parseFloat(e.target.value))}
@@ -984,18 +1030,18 @@ export const LaborTime: React.FC = () => {
 
                     {/* Totals */}
                     <div className="text-right">
-                       <p className="text-xs text-gray-500 mb-1">Subtotal Tiempo: {rawTotalTime.toFixed(2)} h</p>
+                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subtotal Tiempo: {rawTotalTime.toFixed(2)} h</p>
                        {discountAmount > 0 && (
-                         <p className="text-xs text-green-600 mb-1 font-medium">Ahorro Manual: -{discountAmount.toFixed(2)} h</p>
+                         <p className="text-xs text-green-600 dark:text-green-400 mb-1 font-medium">Ahorro Manual: -{discountAmount.toFixed(2)} h</p>
                        )}
                        
                        <div className="flex flex-col items-end">
-                         <div className="flex items-center text-3xl font-extrabold text-gray-900 leading-none mt-1">
-                           {finalTotalTime.toFixed(2)} <span className="text-sm font-medium text-gray-500 ml-1 self-end mb-1">horas</span>
+                         <div className="flex items-center text-3xl font-extrabold text-gray-900 dark:text-white leading-none mt-1">
+                           {finalTotalTime.toFixed(2)} <span className="text-sm font-medium text-gray-500 dark:text-gray-400 ml-1 self-end mb-1">horas</span>
                          </div>
                          
                          {hourlyRate > 0 && finalTotalTime > 0 && (
-                           <div className="flex items-center mt-2 text-2xl font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-md border border-brand-100">
+                           <div className="flex items-center mt-2 text-2xl font-bold text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/30 px-3 py-1 rounded-md border border-brand-100 dark:border-brand-800">
                              <Calculator className="w-4 h-4 mr-2" />
                              {new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(totalPrice)}
                            </div>

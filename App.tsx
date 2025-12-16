@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { Home } from './pages/Home';
 import { Manuals } from './pages/Manuals';
@@ -17,8 +17,11 @@ function App() {
   const [currentPage, setCurrentPage] = useState<Page>(Page.HOME);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Theme State - Always default to 'system' on load as requested
+  // Theme State
   const [theme, setTheme] = useState<Theme>('system');
+
+  // Tracking State
+  const currentVisitId = useRef<string | null>(null);
 
   // Apply Theme Effect
   useEffect(() => {
@@ -34,11 +37,8 @@ function App() {
     };
 
     applyTheme();
-    // We update localStorage just for persistence during session if needed, 
-    // but on reload it will reset to 'system' due to useState('system')
     localStorage.setItem('theme', theme);
 
-    // Listen for system changes if in system mode
     if (theme === 'system') {
       systemQuery.addEventListener('change', applyTheme);
       return () => systemQuery.removeEventListener('change', applyTheme);
@@ -57,8 +57,9 @@ function App() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Record visit for analytics
-        storageService.recordVisit();
+        // Record visit and store ID for tracking
+        const visitId = await storageService.recordVisit();
+        currentVisitId.current = visitId;
 
         const [m, n, f, i, s] = await Promise.all([
           storageService.getManuals(),
@@ -81,6 +82,24 @@ function App() {
 
     loadData();
   }, []);
+
+  // --- PAGE NAVIGATION TRACKING ---
+  useEffect(() => {
+    if (currentVisitId.current) {
+      // Map enum to readable name
+      let pageName = 'Inicio';
+      switch(currentPage) {
+        case Page.MANUALS: pageName = 'Manuales'; break;
+        case Page.TOOLS: pageName = 'Herramientas'; break;
+        case Page.METRICS: pageName = 'Métricas'; break;
+        case Page.COURSES: pageName = 'Cursos'; break;
+        case Page.FEEDBACK: pageName = 'Buzón'; break;
+        case Page.ADMIN: pageName = 'Admin'; break;
+        default: pageName = 'Inicio';
+      }
+      storageService.trackPageNavigation(currentVisitId.current, pageName);
+    }
+  }, [currentPage]);
 
   // Handlers wrapped with Storage Service calls
   const handleAddManual = async (newManual: Manual) => {

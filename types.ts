@@ -32,6 +32,7 @@ export interface NewsItem {
   title: string;
   category: string;
   date: string;
+  timestamp?: number; // Nuevo: Para ordenamiento exacto
   description: string;
   highlight?: boolean;
   highlightDuration?: number; // Cantidad de días que permanece destacada (default 15)
@@ -61,7 +62,12 @@ export interface VisitRecord {
   timestamp: number;
   dateString: string; // ISO date or readable date for easier grouping
   deviceInfo?: string; // Optional: for future use (mobile/desktop)
+  deviceId?: string; // Nuevo: UUID persistente para identificar el dispositivo único
   ip?: string; // Public IP address of the visitor
+  isp?: string; // Nuevo: Proveedor de Internet (e.g. Telecentro, Fibertel)
+  screenResolution?: string; // Nuevo: ancho x alto
+  language?: string; // Nuevo: es-AR, en-US, etc.
+  sectionsVisited?: string[]; // Nuevo: Array de secciones visitadas en la sesión
 }
 
 export interface IpAlias {

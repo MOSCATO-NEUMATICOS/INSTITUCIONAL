@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Manual, ManualCategory } from '../types';
-import { Search, FileText, Download, Eye, X, BookOpen } from 'lucide-react';
+import { Search, FileText, Download, Eye, X, BookOpen, HelpCircle, Info } from 'lucide-react';
 import { SectionHero } from '../components/SectionHero';
 
 interface ManualsProps {
@@ -15,6 +15,9 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
   // State for the Reader Modal
   const [selectedManual, setSelectedManual] = useState<Manual | null>(null);
   const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  
+  // UI State
+  const [showHelp, setShowHelp] = useState(false);
 
   // Effect to manage Blob URL generation for PDF viewer
   useEffect(() => {
@@ -139,7 +142,17 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
       >
         {/* Search integrated into Hero */}
         <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 w-full max-w-md">
-          <label className="block text-sm font-bold text-white mb-2">Búsqueda Rápida</label>
+          <div className="flex justify-between items-center mb-2">
+            <label className="block text-sm font-bold text-white">Búsqueda Rápida</label>
+            <button 
+              onClick={() => setShowHelp(!showHelp)}
+              className="text-brand-200 hover:text-white transition-colors"
+              title="Sugerir nuevo manual"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+          </div>
+          
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-5 w-5 text-gray-400" />
@@ -155,6 +168,20 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
           <p className="text-xs text-brand-200 mt-2 text-center">
             {filteredManuals.length} documentos disponibles
           </p>
+
+          {/* HELP PANEL */}
+          {showHelp && (
+            <div className="mt-4 bg-brand-800/90 border border-brand-500/50 p-4 rounded-xl text-xs text-brand-100 relative animate-fade-in backdrop-blur-sm shadow-lg">
+                <button onClick={() => setShowHelp(false)} className="absolute top-2 right-2 text-brand-400 hover:text-white"><X className="w-3 h-3"/></button>
+                <h4 className="font-bold text-white mb-2 flex items-center"><Info className="w-3 h-3 mr-1.5"/> ¿Falta algún procedimiento?</h4>
+                <p className="mb-2">Si notás que falta un manual importante o tenés redactada una guía de alguna tarea particular:</p>
+                <ul className="list-disc list-inside space-y-1 text-brand-200">
+                  <li>Enviala por el <strong>Buzón de Sugerencias</strong>.</li>
+                  <li>Contactá a administración para agregarla.</li>
+                </ul>
+                <p className="mt-2 text-gold-400 font-bold">¡Tu aporte ayuda a mejorar el conocimiento de todo el equipo!</p>
+            </div>
+          )}
         </div>
       </SectionHero>
 
