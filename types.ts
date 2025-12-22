@@ -15,13 +15,13 @@ export interface Manual {
   category: ManualCategory;
   description: string;
   lastUpdated: string;
-  link?: string; // Optional link to file (Base64 PDF)
-  textContent?: string; // Optional full text content for online reading
+  link?: string;
+  textContent?: string;
 }
 
 export enum ManualCategory {
   ALL = 'Todos',
-  TALLER = 'Taller', // Unifies Gomeria, Alineacion, Mecanica
+  TALLER = 'Taller',
   ADMINISTRACION = 'Administración',
   SEGURIDAD = 'Seguridad',
   VENTAS = 'Ventas'
@@ -32,12 +32,12 @@ export interface NewsItem {
   title: string;
   category: string;
   date: string;
-  timestamp?: number; // Nuevo: Para ordenamiento exacto
+  timestamp?: number;
   description: string;
   highlight?: boolean;
-  highlightDuration?: number; // Cantidad de días que permanece destacada (default 15)
-  autoDelete?: boolean; // Si es true, se oculta/elimina automáticamente
-  autoDeleteDuration?: number; // Días tras los cuales se elimina
+  highlightDuration?: number;
+  autoDelete?: boolean;
+  autoDeleteDuration?: number;
 }
 
 export type FeedbackStatus = 'new' | 'in_progress' | 'resolved';
@@ -51,36 +51,43 @@ export interface FeedbackItem {
   isAnonymous: boolean;
   name?: string;
   message: string;
-  status?: FeedbackStatus; // Nuevo: Estado del ticket
-  type?: FeedbackType;     // Nuevo: Tipo de mensaje
-  priority?: FeedbackPriority; // Nuevo: Prioridad
-  adminNotes?: string;     // Nuevo: Notas internas del admin
+  status?: FeedbackStatus;
+  type?: FeedbackType;
+  priority?: FeedbackPriority;
+  adminNotes?: string;
 }
 
 export interface VisitRecord {
   id: string;
   timestamp: number;
-  dateString: string; // ISO date or readable date for easier grouping
-  deviceInfo?: string; // Optional: for future use (mobile/desktop)
-  deviceId?: string; // Nuevo: UUID persistente para identificar el dispositivo único
-  ip?: string; // Public IP address of the visitor
-  isp?: string; // Nuevo: Proveedor de Internet (e.g. Telecentro, Fibertel)
-  screenResolution?: string; // Nuevo: ancho x alto
-  language?: string; // Nuevo: es-AR, en-US, etc.
-  sectionsVisited?: string[]; // Nuevo: Array de secciones visitadas en la sesión
+  dateString: string;
+  deviceInfo?: string;
+  deviceId?: string;
+  ip?: string;
+  isp?: string;
+  screenResolution?: string;
+  language?: string;
+  timezone?: string; // Nuevo
+  sectionsVisited?: string[];
 }
 
 export interface IpAlias {
   id: string;
   ip: string;
-  name: string; // e.g., "Oficina Central", "Celular Juan"
+  name: string;
+}
+
+export interface DeviceAlias { // Nuevo
+  id: string;
+  deviceId: string;
+  name: string;
 }
 
 export interface EmployeeCourse {
   id: string;
   employeeName: string;
   courseTitle: string;
-  platform: string; // e.g., "Goodyear", "Udemy", "Interno"
+  platform: string;
   date: string;
   hasCertificate: boolean;
   timestamp: number;
@@ -97,8 +104,8 @@ export interface RecommendedCourse {
 export interface Supplier {
   id: string;
   name: string;
-  discountChain: string; // e.g. "35+10+5"
-  margin: number; // e.g. 40
-  marginBase?: 'cost' | 'list'; // Calculate from Cost or List Price
-  addIva?: boolean; // New: If true, adds 21% to list price before discounts
+  discountChain: string;
+  margin: number;
+  marginBase?: 'cost' | 'list';
+  addIva?: boolean;
 }

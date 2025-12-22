@@ -1,186 +1,251 @@
 
-import React, { useState, useEffect } from 'react';
-import { IpAlias, VisitRecord } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { IpAlias, DeviceAlias, VisitRecord, Manual, ManualCategory, NewsItem } from '../../types';
 import { storageService } from '../../services/storage';
-import { Globe, Calendar, BarChart2, Network, Trash2, Database, Loader2, Download, RefreshCw, Smartphone, Monitor, Wifi, CheckCircle2, AlertCircle, Maximize, Languages, ChevronDown, ChevronUp, HelpCircle, Info, X, Shield, List, Fingerprint } from 'lucide-react';
+import { Globe, Calendar, BarChart2, Network, Trash2, Database, Loader2, Download, RefreshCw, Smartphone, Monitor, CheckCircle2, AlertCircle, Maximize, ChevronDown, ChevronUp, Shield, List, Fingerprint, Clock, Activity, MapPin, Search, Copy, UserCheck, BookPlus, Sparkles } from 'lucide-react';
 
 interface AdminSystemProps {
   ipAliases: IpAlias[];
+  deviceAliases: DeviceAlias[];
   onAddIpAlias: (alias: IpAlias) => void;
   onDeleteIpAlias: (id: string) => void;
+  onAddDeviceAlias: (alias: DeviceAlias) => void;
+  onDeleteDeviceAlias: (id: string) => void;
   onImportData: (data: any) => void;
-  onClearHistory?: () => void; // Prop for clearing history
+  onClearHistory?: () => void;
   fullDataExport: any; 
+  onAddManual: (manual: Manual) => Promise<void>;
+  onAddNews: (news: NewsItem) => Promise<void>;
 }
 
-interface ConnectionStat {
-  key: string; 
-  name: string;
-  isKnown: boolean;
-  count: number;
-  lastSeen: number;
-  ip: string; 
-  isp?: string; 
-  type: 'device' | 'ip'; 
-}
-
-export const AdminSystem: React.FC<AdminSystemProps> = ({ ipAliases, onAddIpAlias, onDeleteIpAlias, onImportData, onClearHistory, fullDataExport }) => {
-  const [visitStats, setVisitStats] = useState<{total: number, today: number, previousVisit: string}>({ total: 0, today: 0, previousVisit: '-' });
+export const AdminSystem: React.FC<AdminSystemProps> = ({ 
+  ipAliases = [], deviceAliases = [], onAddIpAlias, onDeleteIpAlias, onAddDeviceAlias, onDeleteDeviceAlias, onImportData, onClearHistory, fullDataExport, onAddManual, onAddNews 
+}) => {
+  const [visitStats, setVisitStats] = useState({ total: 0, today: 0, previousVisit: '-' });
   const [recentVisitsLog, setRecentVisitsLog] = useState<VisitRecord[]>([]);
-  const [connectionStats, setConnectionStats] = useState<ConnectionStat[]>([]);
   const [newIpAlias, setNewIpAlias] = useState({ ip: '', name: '' });
+  const [newDeviceAlias, setNewDeviceAlias] = useState({ deviceId: '', name: '' });
   const [isExporting, setIsExporting] = useState(false);
-  const [isClearing, setIsClearing] = useState(false); // Loading state for clearing
+  const [isSeeding, setIsSeeding] = useState(false);
   
-  // UI Toggles
-  const [showIpRanking, setShowIpRanking] = useState(false);
+  const [currentSession, setCurrentSession] = useState({
+    deviceId: '',
+    ip: 'Cargando...',
+    userAgent: navigator.userAgent
+  });
+
+  const [showRanking, setShowRanking] = useState(false);
   const [showActivityLog, setShowActivityLog] = useState(false);
-  const [showAliasHelp, setShowAliasHelp] = useState(false);
-  const [showBackupHelp, setShowBackupHelp] = useState(false);
-
-  // Load stats function to be reusable
-  const loadStats = async () => {
-    const visits = await storageService.getVisits();
-    const todayStr = new Date().toLocaleDateString('es-AR');
-    
-    const todayCount = visits.filter(v => v.dateString === todayStr).length;
-    
-    let prevVisit = 'Primer Ingreso';
-    if (visits.length > 1) {
-        const prev = visits[1]; 
-        prevVisit = new Date(prev.timestamp).toLocaleString('es-AR', { 
-          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
-        });
-    } else if (visits.length === 0) {
-        prevVisit = '-';
-    }
-
-    setVisitStats({
-      total: visits.length,
-      today: todayCount,
-      previousVisit: prevVisit
-    });
-
-    setRecentVisitsLog(visits.slice(0, 50));
-
-    // --- DEVICE / IP AGGREGATION LOGIC ---
-    const aggMap = new Map<string, { count: number, lastDate: number, ip: string, isp?: string, type: 'device' | 'ip' }>();
-
-    visits.forEach(v => {
-      const hasDeviceId = !!v.deviceId;
-      const key = hasDeviceId ? v.deviceId! : (v.ip || 'Desconocido');
-      const type = hasDeviceId ? 'device' : 'ip';
-      
-      const current = aggMap.get(key) || { count: 0, lastDate: 0, ip: v.ip || '', isp: '', type };
-      
-      aggMap.set(key, {
-        count: current.count + 1,
-        lastDate: Math.max(current.lastDate, v.timestamp),
-        ip: v.ip || current.ip, 
-        isp: v.isp || current.isp,
-        type: type
-      });
-    });
-
-    const statsArray: ConnectionStat[] = Array.from(aggMap.entries()).map(([key, data]) => {
-      const alias = ipAliases.find(a => a.ip === data.ip);
-      return {
-        key: key,
-        name: alias ? alias.name : 'Desconocido',
-        isKnown: !!alias,
-        count: data.count,
-        lastSeen: data.lastDate,
-        ip: data.ip,
-        isp: data.isp,
-        type: data.type
-      };
-    }).sort((a, b) => b.count - a.count); 
-
-    setConnectionStats(statsArray);
-  };
 
   useEffect(() => {
+    const loadStats = async () => {
+      const myId = storageService.getOrCreateDeviceId();
+      let myIp = 'Desconocida';
+      try {
+        const resp = await fetch('https://ipinfo.io/json');
+        if (resp.ok) {
+          const data = await resp.json();
+          myIp = data.ip;
+        }
+      } catch(e) {}
+      setCurrentSession(prev => ({ ...prev, deviceId: myId, ip: myIp }));
+
+      const visits = await storageService.getVisits();
+      const todayStr = new Date().toLocaleDateString('es-AR');
+      const todayCount = visits.filter(v => v.dateString === todayStr).length;
+      let prevVisit = '-';
+      if (visits.length > 1) {
+        prevVisit = new Date(visits[0].timestamp).toLocaleString('es-AR', { 
+          day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+        });
+      }
+      setVisitStats({ total: visits.length, today: todayCount, previousVisit: prevVisit });
+      setRecentVisitsLog(visits);
+    };
     loadStats();
-  }, [ipAliases]); 
+  }, [ipAliases, deviceAliases]);
 
-  const handleAddAlias = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newIpAlias.ip || !newIpAlias.name) return;
-    
-    onAddIpAlias({
-      id: Date.now().toString(),
-      ip: newIpAlias.ip.trim(),
-      name: newIpAlias.name.trim()
+  const ranking = useMemo(() => {
+    const aggMap = new Map<string, { count: number, lastDate: number, ip: string, deviceId: string, type: string }>();
+    recentVisitsLog.forEach(v => {
+      const key = v.deviceId || v.ip || 'desconocido';
+      const current = aggMap.get(key) || { count: 0, lastDate: 0, ip: v.ip || '', deviceId: v.deviceId || '', type: v.deviceInfo || '' };
+      aggMap.set(key, { ...current, count: current.count + 1, lastDate: Math.max(current.lastDate, v.timestamp) });
     });
-    setNewIpAlias({ ip: '', name: '' });
-  };
+    return Array.from(aggMap.values()).sort((a, b) => b.count - a.count).slice(0, 15);
+  }, [recentVisitsLog]);
 
-  const formatISP = (org?: string) => {
-    if (!org) return '';
-    return org.replace(/^AS\d+\s+/, ''); 
+  const getAliasName = (ip?: string, deviceId?: string) => {
+    const dAlias = deviceAliases.find(a => a.deviceId === deviceId);
+    if (dAlias) return { name: dAlias.name, type: 'device' as const };
+    const iAlias = ipAliases.find(a => a.ip === ip);
+    if (iAlias) return { name: iAlias.name, type: 'ip' as const };
+    return null;
   };
 
   const getDeviceIcon = (ua: string = '') => {
-    if (/Mobile|Android|iPhone|iPad/i.test(ua)) {
-      return <Smartphone className="w-4 h-4 text-brand-500 inline mr-1" />;
+    if (/Mobile|Android|iPhone/i.test(ua)) return <Smartphone className="w-4 h-4 text-brand-500" />;
+    return <Monitor className="w-4 h-4 text-gray-500" />;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Copiado: ' + text);
+  };
+
+  const preFillMyDevice = () => {
+    setNewDeviceAlias(prev => ({ ...prev, deviceId: currentSession.deviceId }));
+    document.getElementById('alias-name-input')?.focus();
+  };
+
+  const handleFullSeeding = async () => {
+    if (!confirm("Esta acción cargará todos los manuales institucionales (Balanceo, Neumáticos, Garantías, etc.) y las novedades base en Firebase. ¿Desea continuar?")) return;
+    
+    setIsSeeding(true);
+    const date = new Date().toLocaleDateString('es-AR');
+
+    const manualsToLoad: Omit<Manual, 'id'>[] = [
+      {
+        title: "Balanceo de Ruedas",
+        category: ManualCategory.TALLER,
+        description: "Procedimiento estándar para garantizar un rodado seguro, sin vibraciones y con durabilidad.",
+        lastUpdated: date,
+        textContent: "1. OBJETIVO: Estandarizar el procedimiento de balanceo.\n\n3. HERRAMIENTAS: Balanceadora, Plomos, Pinza, Inflador, Trapo y Alcohol, EPP.\n\n4. PASOS:\n- Retirar rueda.\n- Verificar presión y ajustar.\n- Centrar en balanceadora.\n- Ingresar medidas (Ancho, Diámetro, Distancia).\n- Girar y esperar lectura.\n- Colocar plomos (Limpiar si son adhesivos).\n- Repetir hasta marcar 0-0.\n- Montar y ajustar en cruz (DI, DD, TD, TI)."
+      },
+      {
+        title: "Cambio de Neumáticos",
+        category: ManualCategory.TALLER,
+        description: "Protocolo de seguridad y rapidez para el servicio de gomería.",
+        lastUpdated: date,
+        textContent: "1. OBJETIVO: Asegurar seguridad y calidad.\n\n4. PASOS:\n- Aflojar tuercas en el piso.\n- Elevar vehículo de forma segura.\n- Desarmar con desarmadora.\n- Revisar llanta y válvula.\n- Montar nuevo/reparado.\n- Balancear si es nuevo.\n- Inflar a presión recomendada.\n- Ajustar en cruz y dar torque final con vehículo en piso."
+      },
+      {
+        title: "Cambio de Válvulas TPMS",
+        category: ManualCategory.TALLER,
+        description: "Procedimiento específico para sensores de presión en Chevrolet y Ford.",
+        lastUpdated: date,
+        textContent: "CHEVROLET:\n- Auto en marcha, P o N, freno de mano.\n- Mantener OK 10 seg hasta bocinas.\n- Sensar en orden: DI, DD, TD, TI.\n- Bocina confirma cada sensor. 2 bocinas al final.\n\nFORD:\n- P o N, freno de mano.\n- Pisar/soltar freno.\n- Contacto 3 veces (terminar en ON).\n- Pisar/soltar freno.\n- Contacto 3 veces.\n- Bocina indica inicio.\n- Sensar con aparato TPMS en el pico."
+      },
+      {
+        title: "Reparación de Ruedas (Pinchaduras)",
+        category: ManualCategory.TALLER,
+        description: "Estándar de reparación para neumáticos sin cámara.",
+        lastUpdated: date,
+        textContent: "1. OBJETIVO: Garantizar seguridad y durabilidad.\n\n4. PASOS:\n- Retirar rueda.\n- Inflar y revisar en agua.\n- Marcar pérdida y posición del pico.\n- Desarmar e inspeccionar interior.\n- Pulir superficie interior con torno.\n- Aplicar cemento en frío (esperar 2-3 min).\n- Colocar parche según daño y vulcanizar con rodillo.\n- Confirmar ausencia de pérdidas en agua final."
+      },
+      {
+        title: "Políticas de Garantía",
+        category: ManualCategory.ADMINISTRACION,
+        description: "Plazos y alcances de la garantía de servicios y productos.",
+        lastUpdated: date,
+        textContent: "ALCANCE: Solo trabajos realizados en Moscato con piezas nuestras.\n\nPLAZOS:\n- Neumáticos: Garantía de fábrica.\n- Balanceo/Alineación: 30 días o 1.000 km.\n- Tren Delantero: 3 meses o 5.000 km.\n- Reparaciones: 15 días sobre el parche.\n\nRECLAMOS: Presentar factura, revisión exclusiva en nuestro taller."
+      },
+      {
+        title: "Guía de Trabajo - Atención y Orden",
+        category: ManualCategory.ADMINISTRACION,
+        description: "Manual de convivencia, atención al cliente y limpieza de la sucursal.",
+        lastUpdated: date,
+        textContent: "1. ATENCIÓN: Saludar con buena onda, escuchar al cliente, explicar sin jergas.\n\n2. TALLER: Revisar antes de intervenir, anotar observaciones, cuidar herramientas.\n\n3. ADM: Registrar todo en sistema, emitir facturas correctas.\n\n4. ORDEN: Puesto limpio al terminar, herramientas acomodadas, oficinas impecables.\n\n5. RESOLUCIÓN: Escuchar antes de discutir, nunca prometer lo imposible."
+      },
+      {
+        title: "Carga de Clientes WhatsApp",
+        category: ManualCategory.VENTAS,
+        description: "Normas para el registro de contactos en listas de difusión.",
+        lastUpdated: date,
+        textContent: "REGLA: Nombre + Código (MMM YY).\nEjemplo: Juan Pérez ENE25.\n\nPROCESO:\n- Cargar contacto nuevo con mes actual.\n- No modificar código al volver.\n- SIEMPRE en mayúsculas y al final del nombre.\n- Sirve para segmentación y conteo mensual."
+      },
+      {
+        title: "Alineación 3D",
+        category: ManualCategory.TALLER,
+        description: "Protocolo técnico desde el ingreso hasta el informe impreso.",
+        lastUpdated: date,
+        textContent: "1. PREPARACIÓN: Revisar neumáticos (serrucho, cortes). Si hay falla mecánica, avisar a administración.\n2. SENSORES: Instalar garras y targets.\n3. ALABEO: Compensación según máquina.\n4. MEDICIÓN: Convergencia, Caída, Avance.\n5. AJUSTES: Aplicar torque correcto en fijaciones.\n6. CONTROL: Volante centrado, informe impreso en asiento, sticker de km pegado."
+      }
+    ];
+
+    try {
+      for (const m of manualsToLoad) {
+        await onAddManual({ id: '', ...m } as Manual);
+      }
+      
+      await onAddNews({
+        id: '',
+        title: "¡Base de Conocimiento Actualizada!",
+        category: "Administración",
+        date: date,
+        timestamp: Date.now(),
+        description: "Se han cargado todos los manuales de procedimiento, políticas de garantía y guías de atención. Ya están disponibles en la sección 'Manuales'.",
+        highlight: true,
+        highlightDuration: 15,
+        autoDelete: false
+      });
+
+      alert("¡ÉXITO! Se han cargado " + manualsToLoad.length + " manuales y la novedad de bienvenida en Firebase. El sistema se reiniciará para sincronizar.");
+      window.location.reload();
+    } catch (e) {
+      alert("Error durante la carga: " + (e as Error).message);
+    } finally {
+      setIsSeeding(false);
     }
-    return <Monitor className="w-4 h-4 text-gray-500 inline mr-1" />;
   };
 
-  const getDeviceName = (ua: string = '') => {
-    let os = 'Desconocido';
-    if (/Windows/i.test(ua)) os = 'PC Windows';
-    else if (/Mac/i.test(ua)) os = 'Mac';
-    else if (/iPhone|iPad/i.test(ua)) os = 'iOS';
-    else if (/Android/i.test(ua)) os = 'Android';
-    else if (/Linux/i.test(ua)) os = 'Linux';
+  /**
+   * Helper to clean data of circular references and non-serializable Firebase objects
+   */
+  const sanitizeForExport = (obj: any): any => {
+    const cache = new WeakSet();
+    
+    const recursiveSanitize = (val: any): any => {
+      if (val === null || typeof val !== 'object') return val;
+      if (val instanceof Date) return val.toISOString();
+      
+      // Handle Firestore Timestamps (common cause of Q$1 error)
+      if (val.seconds !== undefined && val.nanoseconds !== undefined) {
+        return new Date(val.seconds * 1000).toISOString();
+      }
 
-    let browser = '';
-    if (/Chrome/i.test(ua)) browser = 'Chrome';
-    else if (/Firefox/i.test(ua)) browser = 'Firefox';
-    else if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
-    else if (/Edge/i.test(ua)) browser = 'Edge';
+      if (cache.has(val)) return '[Circular Reference]';
+      cache.add(val);
 
-    return `${os} ${browser ? `(${browser})` : ''}`;
+      if (Array.isArray(val)) {
+        return val.map(recursiveSanitize);
+      }
+
+      const cleanObj: any = {};
+      for (const key in val) {
+        if (Object.prototype.hasOwnProperty.call(val, key)) {
+          const property = val[key];
+          // Skip internal firebase/react fields or functions
+          if (typeof property === 'function' || key.startsWith('_')) continue;
+          cleanObj[key] = recursiveSanitize(property);
+        }
+      }
+      return cleanObj;
+    };
+
+    return recursiveSanitize(obj);
   };
 
-  const getIpLabel = (ip: string | undefined) => {
-    if (!ip) return { label: '-', isAlias: false };
-    const alias = ipAliases.find(a => a.ip === ip);
-    if (alias) {
-      return { label: alias.name, ip: ip, isAlias: true };
-    }
-    return { label: ip, isAlias: false };
-  };
-
-  const handleExportData = async () => {
+  const handleExportData = () => {
     setIsExporting(true);
     try {
-      const freshRecCourses = await storageService.getRecommendedCourses();
-      const freshEmpCourses = await storageService.getEmployeeCourses();
-      const freshAliases = await storageService.getIpAliases();
-      const freshSuppliers = await storageService.getSuppliers();
-
-      const data = {
-        ...fullDataExport,
-        recommendedCourses: freshRecCourses,
-        employeeCourses: freshEmpCourses,
-        ipAliases: freshAliases,
-        suppliers: freshSuppliers
-      };
-      const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
+      // Step 1: Sanitize data to remove non-JSON objects and circularities
+      const sanitizedData = sanitizeForExport(fullDataExport);
+      
+      const dataStr = JSON.stringify(sanitizedData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `backup_moscato_${new Date().toISOString().slice(0,10)}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const exportFileDefaultName = `moscato_backup_${new Date().toISOString().split('T')[0]}.json`;
+      const linkElement = document.createElement('a');
+      linkElement.href = url;
+      linkElement.download = exportFileDefaultName;
+      document.body.appendChild(linkElement);
+      linkElement.click();
+      document.body.removeChild(linkElement);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Export failed", error);
-      alert("Hubo un error al generar la copia de seguridad.");
+      alert("Error al exportar datos: Se detectó un objeto no serializable en la base de datos.");
     } finally {
       setIsExporting(false);
     }
@@ -189,363 +254,319 @@ export const AdminSystem: React.FC<AdminSystemProps> = ({ ipAliases, onAddIpAlia
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const json = JSON.parse(event.target?.result as string);
-        if (onImportData) {
-          if (confirm('ATENCIÓN: Esto reemplazará los datos actuales con los del archivo. ¿Desea continuar?')) {
-            onImportData(json);
-            alert('¡Datos restaurados con éxito!');
-          }
+        const data = JSON.parse(event.target?.result as string);
+        if (window.confirm('¿Está seguro de restaurar este backup? Los datos actuales serán importados.')) {
+          onImportData(data);
         }
       } catch (error) {
-        alert('Error al leer el archivo. Asegúrese de que sea un JSON válido.');
-        console.error(error);
+        alert("Error al procesar el archivo de backup.");
       }
     };
     reader.readAsText(file);
-    e.target.value = '';
-  };
-
-  // --- HANDLE CLEAR HISTORY ---
-  const handleClearClick = async () => {
-    if (!onClearHistory) return;
-    
-    if (window.confirm("¿ESTÁS SEGURO? \n\nEsta acción eliminará PERMANENTEMENTE todo el registro de visitas, estadísticas y dispositivos únicos. \n\nNo se puede deshacer.")) {
-        setIsClearing(true);
-        try {
-            await onClearHistory();
-            // Refresh stats to show zero
-            await loadStats();
-            alert("Historial eliminado correctamente.");
-        } catch (error) {
-            console.error(error);
-            alert("Hubo un error al intentar borrar el historial.");
-        } finally {
-            setIsClearing(false);
-        }
-    }
   };
 
   return (
     <div className="space-y-8 animate-fade-in">
-        {/* Analytics Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center">
-            <div className="p-3 bg-blue-100 rounded-full mr-4 text-blue-600">
-            <Globe className="w-6 h-6" />
+        {/* TARJETA: TU ACCESO ACTUAL */}
+        <div className="bg-gradient-to-r from-brand-900 to-blue-900 text-white rounded-2xl p-6 shadow-xl border-b-4 border-gold-400 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                <UserCheck className="w-24 h-24" />
             </div>
-            <div>
-            <p className="text-sm text-gray-500 font-bold uppercase">Visitas Totales</p>
-            <p className="text-2xl font-bold text-gray-900">{visitStats.total}</p>
-            </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center">
-            <div className="p-3 bg-green-100 rounded-full mr-4 text-green-600">
-            <Calendar className="w-6 h-6" />
-            </div>
-            <div>
-            <p className="text-sm text-gray-500 font-bold uppercase">Visitas Hoy</p>
-            <p className="text-2xl font-bold text-gray-900">{visitStats.today}</p>
-            </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex items-center">
-            <div className="p-3 bg-purple-100 rounded-full mr-4 text-purple-600">
-            <BarChart2 className="w-6 h-6" />
-            </div>
-            <div>
-            <p className="text-sm text-gray-500 font-bold uppercase">Último Ingreso</p>
-            <p className="text-sm font-bold text-gray-900">{visitStats.previousVisit}</p>
-            </div>
-        </div>
-        </div>
-
-        {/* Security & Access Logs */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* IP ALIAS MANAGER */}
-        <div className="lg:col-span-1 bg-white border border-gray-200 rounded-lg overflow-hidden h-fit">
-            <div className="bg-gray-800 text-white px-4 py-3 flex justify-between items-center">
-              <h4 className="font-bold text-sm flex items-center"><Network className="w-4 h-4 mr-2" /> IPs Conocidas (Alias)</h4>
-              <button onClick={() => setShowAliasHelp(!showAliasHelp)} className="text-gray-300 hover:text-white">
-                <HelpCircle className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {showAliasHelp && (
-              <div className="bg-gray-700 p-3 text-xs text-gray-200 border-b border-gray-600 relative">
-                <button onClick={() => setShowAliasHelp(false)} className="absolute top-1 right-1 text-gray-400 hover:text-white"><X className="w-3 h-3"/></button>
-                <p>Asigna nombres amigables a las IPs recurrentes para identificarlas fácil en los reportes (ej: "Oficina Central", "Taller", "Casa Diego").</p>
-              </div>
-            )}
-
-            <div className="p-4 bg-gray-50 border-b border-gray-200">
-            <form onSubmit={handleAddAlias} className="space-y-2">
-                <input 
-                type="text" 
-                placeholder="Dirección IP (ej: 181.10.20.30)" 
-                className="w-full p-2 text-xs border rounded bg-white text-gray-900"
-                value={newIpAlias.ip}
-                onChange={e => setNewIpAlias({...newIpAlias, ip: e.target.value})}
-                />
-                <input 
-                type="text" 
-                placeholder="Nombre (ej: Oficina, Casa)" 
-                className="w-full p-2 text-xs border rounded bg-white text-gray-900"
-                value={newIpAlias.name}
-                onChange={e => setNewIpAlias({...newIpAlias, name: e.target.value})}
-                />
-                <button type="submit" className="w-full bg-gray-600 text-white text-xs font-bold py-2 rounded hover:bg-gray-700">Guardar Alias</button>
-            </form>
-            </div>
-            <ul className="divide-y divide-gray-100 max-h-[300px] overflow-y-auto">
-            {ipAliases.map(alias => (
-                <li key={alias.id} className="p-3 flex justify-between items-center hover:bg-gray-50 text-xs">
-                <div>
-                    <span className="font-bold block text-gray-800">{alias.name}</span>
-                    <span className="text-gray-500 font-mono">{alias.ip}</span>
+            <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-4">
+                    <Shield className="w-5 h-5 text-gold-400" />
+                    <h3 className="font-bold text-lg">Tu Información de Sesión Actual</h3>
                 </div>
-                <button onClick={() => onDeleteIpAlias(alias.id)} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                </li>
-            ))}
-            </ul>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <p className="text-[10px] uppercase font-bold text-brand-300 mb-1">ID Unico de este dispositivo</p>
+                        <div className="flex items-center gap-2">
+                            <code className="bg-black/30 px-3 py-1.5 rounded font-mono text-sm border border-white/10 break-all">
+                                {currentSession.deviceId}
+                            </code>
+                            <button onClick={() => copyToClipboard(currentSession.deviceId)} className="p-2 hover:bg-white/10 rounded transition-colors" title="Copiar ID">
+                                <Copy className="w-4 h-4 text-gold-400" />
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <p className="text-[10px] uppercase font-bold text-brand-300 mb-1">Tu Dirección IP Detectada</p>
+                        <div className="flex items-center gap-2">
+                            <code className="bg-black/30 px-3 py-1.5 rounded font-mono text-sm border border-white/10">
+                                {currentSession.ip}
+                            </code>
+                            <button onClick={() => copyToClipboard(currentSession.ip)} className="p-2 hover:bg-white/10 rounded transition-colors" title="Copiar IP">
+                                <Copy className="w-4 h-4 text-gold-400" />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex items-end">
+                        <button 
+                            onClick={preFillMyDevice}
+                            className="bg-gold-400 hover:bg-gold-300 text-brand-900 font-black px-6 py-2 rounded-xl text-sm transition-all shadow-lg hover:-translate-y-0.5 flex items-center gap-2"
+                        >
+                            <Fingerprint className="w-4 h-4" />
+                            ASOCIAR MI DISPOSITIVO
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        {/* ACCESS LOGS TABLE (Hidden by default) */}
-        <div className="lg:col-span-2">
-            <button 
-              onClick={() => setShowActivityLog(!showActivityLog)}
-              className="flex items-center justify-between w-full p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm mb-2"
-            >
-               <span className="font-bold text-gray-800 flex items-center">
-                 <List className="w-5 h-5 mr-2 text-brand-600" />
-                 Log de Actividad Detallado (Últimos 50)
-               </span>
-               {showActivityLog ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-            </button>
+        {/* Resumen de Analíticas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center">
+            <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-xl mr-4 text-blue-600 dark:text-blue-400"><Activity className="w-8 h-8" /></div>
+            <div><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Sesiones Totales</p><p className="text-3xl font-black text-gray-900 dark:text-white">{visitStats.total}</p></div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center">
+            <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-xl mr-4 text-green-600 dark:text-green-400"><Calendar className="w-8 h-8" /></div>
+            <div><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Visitas Hoy</p><p className="text-3xl font-black text-gray-900 dark:text-white">{visitStats.today}</p></div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center">
+            <div className="p-4 bg-purple-100 dark:bg-purple-900/30 rounded-xl mr-4 text-purple-600 dark:text-purple-400"><Clock className="w-8 h-8" /></div>
+            <div><p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Último Acceso</p><p className="text-lg font-bold text-gray-900 dark:text-white">{visitStats.previousVisit}</p></div>
+          </div>
+        </div>
 
+        {/* Gestión de Identificación y Alias */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+                <div className="bg-gray-800 dark:bg-gray-900 text-white px-5 py-4 flex items-center justify-between">
+                    <div className="flex items-center">
+                        <Fingerprint className="w-5 h-5 mr-2 text-gold-400" />
+                        <h4 className="font-bold">Alias de Dispositivos</h4>
+                    </div>
+                </div>
+                <div className="p-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <form onSubmit={(e) => { e.preventDefault(); if(newDeviceAlias.deviceId && newDeviceAlias.name) { onAddDeviceAlias({ id: Date.now().toString(), ...newDeviceAlias }); setNewDeviceAlias({ deviceId: '', name: '' }); }}} className="flex flex-col gap-3">
+                    <input type="text" placeholder="ID de Dispositivo (ej: dev-123...)" className="w-full p-2.5 text-xs border rounded bg-white dark:bg-gray-700 dark:text-white font-mono" value={newDeviceAlias.deviceId} onChange={e => setNewDeviceAlias({...newDeviceAlias, deviceId: e.target.value})} />
+                    <div className="flex gap-2">
+                        <input id="alias-name-input" type="text" placeholder="Nombre (ej: PC Marcos)" className="flex-1 p-2.5 text-xs border rounded bg-white dark:bg-gray-700 dark:text-white" value={newDeviceAlias.name} onChange={e => setNewDeviceAlias({...newDeviceAlias, name: e.target.value})} />
+                        <button type="submit" className="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-lg font-bold text-xs transition-colors">Vincular</button>
+                    </div>
+                  </form>
+                </div>
+                <div className="max-h-56 overflow-y-auto">
+                  {deviceAliases.length > 0 ? deviceAliases.map(a => (
+                    <div key={a.id} className="p-3 border-b dark:border-gray-700 flex justify-between items-center text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <div>
+                        <span className="font-bold text-brand-600 dark:text-brand-400 block">{a.name}</span>
+                        <span className="text-gray-400 font-mono text-[10px] break-all">{a.deviceId}</span>
+                      </div>
+                      <button onClick={() => onDeleteDeviceAlias(a.id)} className="text-gray-300 hover:text-red-600 p-2"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  )) : (
+                      <p className="p-4 text-center text-gray-400 text-xs">No hay alias de dispositivos registrados.</p>
+                  )}
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-sm">
+                <div className="bg-gray-800 dark:bg-gray-900 text-white px-5 py-4 flex items-center justify-between">
+                    <div className="flex items-center">
+                        <MapPin className="w-5 h-5 mr-2 text-gold-400" />
+                        <h4 className="font-bold">Alias de IPs</h4>
+                    </div>
+                </div>
+                <div className="p-5 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                  <form onSubmit={(e) => { e.preventDefault(); if(newIpAlias.ip && newIpAlias.name) { onAddIpAlias({ id: Date.now().toString(), ...newIpAlias }); setNewIpAlias({ ip: '', name: '' }); }}} className="flex flex-col gap-3">
+                    <input type="text" placeholder="Dirección IP (ej: 181.10...)" className="w-full p-2.5 text-xs border rounded bg-white dark:bg-gray-700 dark:text-white font-mono" value={newIpAlias.ip} onChange={e => setNewIpAlias({...newIpAlias, ip: e.target.value})} />
+                    <div className="flex gap-2">
+                        <input type="text" placeholder="Nombre (ej: Oficina Central)" className="flex-1 p-2.5 text-xs border rounded bg-white dark:bg-gray-700 dark:text-white" value={newIpAlias.name} onChange={e => setNewIpAlias({...newIpAlias, name: e.target.value})} />
+                        <button type="submit" className="bg-brand-600 hover:bg-brand-700 text-white px-4 rounded-lg font-bold text-xs transition-colors">Vincular</button>
+                    </div>
+                  </form>
+                </div>
+                <div className="max-h-56 overflow-y-auto">
+                  {ipAliases.length > 0 ? ipAliases.map(a => (
+                    <div key={a.id} className="p-3 border-b dark:border-gray-700 flex justify-between items-center text-xs hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <div>
+                        <span className="font-bold text-green-600 block">{a.name}</span>
+                        <span className="text-gray-400 font-mono text-[10px]">{a.ip}</span>
+                      </div>
+                      <button onClick={() => onDeleteIpAlias(a.id)} className="text-gray-300 hover:text-red-600 p-2"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  )) : (
+                      <p className="p-4 text-center text-gray-400 text-xs">No hay alias de IP registrados.</p>
+                  )}
+                </div>
+            </div>
+        </div>
+
+        {/* Ranking Desplegable */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-md">
+            <button 
+                onClick={() => setShowRanking(!showRanking)}
+                className="w-full flex justify-between items-center px-6 py-4 bg-brand-900 text-white hover:bg-brand-800 transition-colors"
+            >
+                <div className="flex items-center">
+                    <BarChart2 className="w-5 h-5 mr-2 text-gold-400" />
+                    <h3 className="font-bold">Ranking de Conexiones Frecuentes</h3>
+                </div>
+                {showRanking ? <ChevronUp className="text-gold-400" /> : <ChevronDown className="text-gold-400" />}
+            </button>
+            
+            {showRanking && (
+                <div className="animate-fade-in overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 font-bold uppercase text-[10px]">
+                            <tr>
+                                <th className="px-6 py-3 text-left">Dispositivo / Identidad</th>
+                                <th className="px-6 py-3 text-left">ID Técnico</th>
+                                <th className="px-6 py-3 text-center">Accesos</th>
+                                <th className="px-6 py-3 text-right">Última Actividad</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {ranking.map((r, i) => {
+                              const alias = getAliasName(r.ip, r.deviceId);
+                              const isMe = r.deviceId === currentSession.deviceId;
+                              return (
+                                <tr key={i} className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${isMe ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center">
+                                      <div className="mr-3 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">{getDeviceIcon(r.type)}</div>
+                                      <div>
+                                        <p className={`font-bold ${alias ? 'text-brand-600 dark:text-brand-400' : 'text-gray-900 dark:text-white'}`}>
+                                          {alias?.name || 'Dispositivo Desconocido'}
+                                          {isMe && <span className="ml-2 text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-black">TÚ</span>}
+                                        </p>
+                                        <span className="text-[9px] uppercase font-bold text-gray-400">
+                                            {alias ? `Alias ${alias.type}` : 'Sin identificar'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="flex flex-col">
+                                        <code className="text-[10px] text-gray-500 bg-gray-50 dark:bg-gray-900 px-1.5 py-0.5 rounded w-fit border dark:border-gray-700 mb-1" title="Device ID">
+                                            ID: {r.deviceId || 'N/A'}
+                                        </code>
+                                        <code className="text-[10px] text-brand-600/70 font-bold" title="IP Address">
+                                            IP: {r.ip}
+                                        </code>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 text-center">
+                                    <span className={`inline-block w-10 py-1 rounded-full font-black text-xs ${r.count > 20 ? 'bg-brand-600 text-white' : 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300'}`}>
+                                      {r.count}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-right text-xs text-gray-500 font-medium">
+                                    {new Date(r.lastDate).toLocaleDateString('es-AR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
+
+        {/* Log de Actividad Detallado */}
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-md">
+            <button onClick={() => setShowActivityLog(!showActivityLog)} className="w-full flex justify-between items-center px-6 py-4 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border-b dark:border-gray-700">
+               <span className="font-bold flex items-center text-gray-800 dark:text-white">
+                   <List className="w-5 h-5 mr-2 text-brand-600" />
+                   Historial de Actividad Detallado
+               </span>
+               {showActivityLog ? <ChevronUp /> : <ChevronDown />}
+            </button>
             {showActivityLog && (
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden animate-fade-in">
-                <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 text-xs">
-                    <thead className="bg-gray-100 text-gray-500 font-semibold uppercase">
-                    <tr>
-                        <th className="px-4 py-3 text-left tracking-wider">Fecha / Hora</th>
-                        <th className="px-4 py-3 text-left tracking-wider">Usuario / Dispositivo</th>
-                        <th className="px-4 py-3 text-left tracking-wider">Detalles Técnicos</th>
-                        <th className="px-4 py-3 text-left tracking-wider">Recorrido</th>
-                    </tr>
+                <div className="overflow-x-auto max-h-[600px] animate-fade-in">
+                <table className="w-full text-[11px]">
+                    <thead className="bg-gray-100 dark:bg-gray-950 text-gray-500 font-bold sticky top-0 z-10 shadow-sm">
+                        <tr>
+                            <th className="px-4 py-3 text-left">Fecha/Hora</th>
+                            <th className="px-4 py-3 text-left">Identidad / Dispositivo</th>
+                            <th className="px-4 py-3 text-left">Datos de Conexión</th>
+                            <th className="px-4 py-3 text-left">Recorrido</th>
+                        </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                    {recentVisitsLog.map((visit) => {
-                        const ipInfo = getIpLabel(visit.ip);
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {recentVisitsLog.map((v) => {
+                        const alias = getAliasName(v.ip, v.deviceId);
+                        const isMe = v.deviceId === currentSession.deviceId;
                         return (
-                        <tr key={visit.id} className="hover:bg-blue-50/30 transition-colors">
-                            <td className="px-4 py-3 whitespace-nowrap text-gray-600 font-medium">
-                              {new Date(visit.timestamp).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
-                            </td>
-                            <td className="px-4 py-3 text-gray-900">
-                              <div className="flex items-center mb-1">
-                                {getDeviceIcon(visit.deviceInfo)}
-                                <span className="font-bold">{getDeviceName(visit.deviceInfo)}</span>
-                              </div>
-                              <div className="font-mono text-[10px] text-gray-500">
-                                {visit.deviceId && (
-                                  <span className="block mb-1 text-gray-400" title={`ID Persistente: ${visit.deviceId}`}>
-                                    ID: {visit.deviceId.substring(0, 8)}...
-                                  </span>
-                                )}
-                                {ipInfo.isAlias ? (
-                                    <span className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-bold mr-1">{ipInfo.label}</span>
-                                ) : (
-                                    <span className="mr-1">{ipInfo.label}</span>
-                                )}
-                                {visit.isp && <span className="text-gray-400 italic block">{formatISP(visit.isp)}</span>}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-gray-500">
-                              {visit.screenResolution && (
-                                <div className="flex items-center mb-1" title="Resolución de pantalla">
-                                  <Maximize className="w-3 h-3 mr-1" /> {visit.screenResolution}
-                                </div>
-                              )}
-                              {visit.language && (
-                                <div className="flex items-center" title="Idioma del navegador">
-                                  <Languages className="w-3 h-3 mr-1" /> {visit.language}
-                                </div>
-                              )}
+                          <tr key={v.id} className={`hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors ${isMe ? 'bg-blue-50/20 dark:bg-blue-900/5' : ''}`}>
+                            <td className="px-4 py-3 text-gray-500 whitespace-nowrap font-medium">
+                              {new Date(v.timestamp).toLocaleString('es-AR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'})}
                             </td>
                             <td className="px-4 py-3">
-                              {visit.sectionsVisited && visit.sectionsVisited.length > 0 ? (
-                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                    {visit.sectionsVisited.map((sec, i) => (
-                                      <span key={i} className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 border border-gray-200 text-[10px] text-gray-600">
-                                        {sec}
-                                      </span>
-                                    ))}
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 italic">-</span>
-                              )}
+                              <div className="flex items-center mb-1">
+                                {getDeviceIcon(v.deviceInfo)}
+                                <span className={`ml-2 font-bold ${alias ? 'text-brand-600 dark:text-brand-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                                  {alias?.name || 'Desconocido'}
+                                </span>
+                                {isMe && <span className="ml-2 text-[8px] bg-blue-100 text-blue-600 px-1 py-0.5 rounded font-black uppercase">Tú</span>}
+                                {alias && !isMe && (
+                                    <CheckCircle2 className="w-3 h-3 ml-1 text-blue-500" />
+                                )}
+                              </div>
+                              <div className="text-[9px] text-gray-400 flex flex-col gap-0.5">
+                                <span className="font-mono bg-gray-50 dark:bg-gray-700 px-1 rounded border dark:border-gray-600 w-fit">ID: {v.deviceId}</span>
+                              </div>
                             </td>
-                        </tr>
+                            <td className="px-4 py-3">
+                              <div className="font-mono font-bold text-brand-700 dark:text-brand-300">{v.ip}</div>
+                              <div className="text-[10px] text-gray-400 italic max-w-[150px] truncate" title={v.isp}>{v.isp}</div>
+                              <div className="flex gap-2 mt-1 opacity-60">
+                                <span className="flex items-center"><Maximize className="w-2.5 h-2.5 mr-1" />{v.screenResolution}</span>
+                                <span className="flex items-center"><Globe className="w-2.5 h-2.5 mr-1" />{v.timezone}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap gap-1 max-w-[180px]">
+                                {v.sectionsVisited?.map((s, i) => (
+                                    <span key={i} className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-[4px] text-[9px] font-bold text-gray-600 dark:text-gray-300 border dark:border-gray-600">
+                                        {s}
+                                    </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
                         );
                     })}
                     </tbody>
                 </table>
                 </div>
-              </div>
             )}
         </div>
-        </div>
 
-        {/* Data Management Section */}
-        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 mt-8">
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-            <span className="flex items-center"><Database className="w-5 h-5 mr-2" /> Gestión de Datos y Copias de Seguridad</span>
-            <button onClick={() => setShowBackupHelp(!showBackupHelp)} className="text-gray-400 hover:text-brand-600"><HelpCircle className="w-5 h-5"/></button>
-        </h3>
-        
-        {showBackupHelp && (
-          <div className="mb-4 bg-white border border-gray-200 rounded p-4 text-sm text-gray-600 animate-fade-in relative">
-             <button onClick={() => setShowBackupHelp(false)} className="absolute top-2 right-2 text-gray-300 hover:text-gray-500"><X className="w-4 h-4"/></button>
-             <p className="mb-2"><strong className="text-gray-800">¿Por qué descargar copias?</strong> Esta aplicación guarda datos en la nube (si hay internet) o en tu navegador localmente. Descargar el archivo JSON asegura que no pierdas manuales, noticias ni configuraciones si se borra el historial o cambia la base de datos.</p>
-             <p><strong>Restaurar:</strong> Usa el botón "Restaurar desde Archivo" para cargar una copia previa y recuperar toda la información.</p>
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row gap-4 items-center flex-wrap">
-            <button 
-            onClick={handleExportData}
-            disabled={isExporting}
-            className="flex items-center justify-center px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 flex-1 min-w-[200px]"
-            >
-            {isExporting ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Download className="w-5 h-5 mr-2 text-brand-600" />}
-            {isExporting ? 'Generando...' : 'Descargar Copia de Seguridad'}
-            </button>
-            
-            <div className="relative flex items-center justify-center px-4 py-3 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-brand-500 cursor-pointer flex-1 min-w-[200px]">
-            <label htmlFor="import-file" className="cursor-pointer flex items-center w-full justify-center">
-                <RefreshCw className="w-5 h-5 mr-2 text-green-600" />
-                <span>Restaurar desde Archivo</span>
-                <input 
-                id="import-file" 
-                type="file" 
-                accept=".json" 
-                className="sr-only" 
-                onChange={handleImportFile}
-                />
-            </label>
+        {/* Gestión de Datos y Backups */}
+        <div className="bg-gray-50 dark:bg-gray-800/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-inner">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-between">
+                <span className="flex items-center"><Database className="w-5 h-5 mr-2 text-brand-600" /> Administración del Sistema</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button 
+                  onClick={handleFullSeeding} 
+                  disabled={isSeeding} 
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition-all shadow-md group relative overflow-hidden"
+                >
+                    {isSeeding ? <Loader2 className="animate-spin w-5 h-5" /> : <Sparkles className="w-5 h-5 group-hover:scale-120 transition-transform" />}
+                    CARGAR BASE CONOCIMIENTO
+                </button>
+                <button onClick={handleExportData} disabled={isExporting} className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-600 transition-all shadow-sm">
+                    {isExporting ? <Loader2 className="animate-spin w-5 h-5" /> : <Download className="w-5 h-5 text-brand-600" />}
+                    Exportar Backup
+                </button>
+                <div className="relative flex items-center justify-center px-4 py-3 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-bold shadow-sm">
+                    <label htmlFor="import-file" className="cursor-pointer flex items-center gap-2 w-full justify-center">
+                        <RefreshCw className="w-5 h-5 text-green-600" />
+                        <span>Restaurar Backup</span>
+                        <input id="import-file" type="file" accept=".json" className="sr-only" onChange={handleImportFile} />
+                    </label>
+                </div>
+                <button onClick={() => onClearHistory?.()} className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl text-sm font-bold hover:bg-red-100 transition-all">
+                    <Trash2 className="w-5 h-5" /> Borrar Logs Visitas
+                </button>
             </div>
-
-            {/* Clear History Button */}
-            <button 
-              onClick={handleClearClick}
-              disabled={isClearing}
-              className="flex items-center justify-center px-4 py-3 bg-red-50 border border-red-200 rounded-md shadow-sm text-sm font-bold text-red-700 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex-1 min-w-[200px]"
-            >
-              {isClearing ? <Loader2 className="animate-spin w-5 h-5 mr-2" /> : <Trash2 className="w-5 h-5 mr-2" />}
-              {isClearing ? 'Borrando...' : 'Borrar Historial de Visitas'}
-            </button>
-        </div>
-        <p className="mt-2 text-xs text-gray-500">
-            * Se recomienda realizar una copia semanal o mensual. El borrado de historial es irreversible.
-        </p>
-        </div>
-
-        {/* IP RANKING TABLE (Hidden by default, at the bottom) */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
-            <button 
-              onClick={() => setShowIpRanking(!showIpRanking)}
-              className="flex items-center justify-center w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-lg transition-colors mb-4"
-            >
-               {showIpRanking ? <ChevronUp className="w-5 h-5 mr-2" /> : <ChevronDown className="w-5 h-5 mr-2" />}
-               {showIpRanking ? 'Ocultar Ranking de Conexiones' : 'Ver Ranking de Conexiones por Dispositivo'}
-            </button>
-
-            {showIpRanking && (
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden animate-fade-in">
-                <div className="bg-brand-900 text-white px-6 py-4 flex justify-between items-center border-b border-brand-800">
-                    <h3 className="font-bold flex items-center">
-                    <Fingerprint className="w-5 h-5 mr-2 text-gold-400" />
-                    Dispositivos Únicos
-                    </h3>
-                    <span className="text-xs bg-brand-800 px-3 py-1 rounded-full text-brand-200">
-                    {connectionStats.length} identificados
-                    </span>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto">
-                    <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
-                        <tr>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Identificación</th>
-                        <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID Dispositivo / IP</th>
-                        <th className="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Visitas Totales</th>
-                        <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Última Vez</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {connectionStats.map((stat, index) => (
-                        <tr key={stat.key} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-3 whitespace-nowrap">
-                            <div className="flex items-center">
-                                {index < 3 && (
-                                <span className={`mr-2 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold text-white ${
-                                    index === 0 ? 'bg-gold-500' : index === 1 ? 'bg-gray-400' : 'bg-orange-400'
-                                }`}>
-                                    {index + 1}
-                                </span>
-                                )}
-                                {stat.isKnown ? (
-                                <span className="flex items-center text-brand-700 font-bold">
-                                    <CheckCircle2 className="w-4 h-4 mr-1.5 text-green-500" />
-                                    {stat.name}
-                                </span>
-                                ) : (
-                                <span className="flex items-center text-gray-500 italic">
-                                    <AlertCircle className="w-4 h-4 mr-1.5 text-gray-300" />
-                                    Desconocido
-                                </span>
-                                )}
-                            </div>
-                            </td>
-                            <td className="px-6 py-3 whitespace-nowrap">
-                            <div className="flex flex-col">
-                                {stat.type === 'device' && (
-                                  <div className="flex items-center text-xs text-brand-600 font-mono font-bold mb-1" title={stat.key}>
-                                    <Fingerprint className="w-3 h-3 mr-1" />
-                                    {stat.key.substring(0, 10)}...
-                                  </div>
-                                )}
-                                <div className="text-gray-500 font-mono text-[10px]">{stat.ip}</div>
-                                {stat.isp && (
-                                    <div className="text-[10px] text-gray-400 font-bold truncate max-w-[200px]">
-                                    {formatISP(stat.isp)}
-                                    </div>
-                                )}
-                            </div>
-                            </td>
-                            <td className="px-6 py-3 whitespace-nowrap text-center">
-                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
-                                stat.count > 50 ? 'bg-purple-100 text-purple-800' :
-                                stat.count > 20 ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-700'
-                            }`}>
-                                {stat.count}
-                            </span>
-                            </td>
-                            <td className="px-6 py-3 whitespace-nowrap text-right text-gray-500 text-xs">
-                            {new Date(stat.lastSeen).toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'})}
-                            </td>
-                        </tr>
-                        ))}
-                    </tbody>
-                    </table>
-                </div>
-                </div>
-            )}
         </div>
     </div>
   );

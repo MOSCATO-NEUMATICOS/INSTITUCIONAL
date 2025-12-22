@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Manual, ManualCategory } from '../types';
-import { Search, FileText, Download, Eye, X, BookOpen, HelpCircle, Info } from 'lucide-react';
+import { Search, FileText, Download, Eye, X, BookOpen, HelpCircle, Info, ExternalLink } from 'lucide-react';
 import { SectionHero } from '../components/SectionHero';
 
 interface ManualsProps {
@@ -19,33 +19,33 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
   // UI State
   const [showHelp, setShowHelp] = useState(false);
 
+  // Helper to convert base64 to Blob
+  const base64ToBlob = (base64: string, type: string) => {
+    const binStr = atob(base64);
+    const len = binStr.length;
+    const arr = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      arr[i] = binStr.charCodeAt(i);
+    }
+    return new Blob([arr], { type });
+  };
+
   // Effect to manage Blob URL generation for PDF viewer
   useEffect(() => {
     let url = '';
     
     if (selectedManual?.link) {
-      // Check if it's a data URI (Base64) which Chrome blocks in iframes
-      if (selectedManual.link.startsWith('data:')) {
+      if (selectedManual.link.startsWith('data:application/pdf;base64,')) {
         try {
-          const base64Parts = selectedManual.link.split(',');
-          // If it has the header data:application/pdf;base64, take the second part
-          const base64Data = base64Parts.length > 1 ? base64Parts[1] : base64Parts[0];
-          
-          const binaryString = window.atob(base64Data);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const base64Content = selectedManual.link.split(',')[1];
+          const blob = base64ToBlob(base64Content, 'application/pdf');
           url = URL.createObjectURL(blob);
           setPdfBlobUrl(url);
         } catch (error) {
           console.error("Error creating PDF blob:", error);
-          setPdfBlobUrl(null); // Fallback or error state
+          setPdfBlobUrl(null);
         }
-      } else {
-        // Normal URL
+      } else if (selectedManual.link.startsWith('http')) {
         setPdfBlobUrl(selectedManual.link);
       }
     } else {
@@ -69,7 +69,6 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
 
   const handleDownload = (manual: Manual) => {
     if (manual.link) {
-      // If it has a link (Base64 PDF), download it directly
       const link = document.createElement('a');
       link.href = manual.link;
       link.download = `${manual.title}.pdf`;
@@ -77,52 +76,33 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
       link.click();
       document.body.removeChild(link);
     } else if (manual.textContent) {
-      // If it's text content, generate a professional HTML document
       const htmlContent = `
         <!DOCTYPE html>
         <html lang="es">
         <head>
           <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>${manual.title} - Moscato Neumáticos</title>
           <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1a1a1a; line-height: 1.6; max-width: 800px; margin: 0 auto; background-color: #f9f9f9; }
-            .container { background: white; padding: 50px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #0047BB; }
-            header { border-bottom: 2px solid #FFD600; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
-            h1 { color: #0047BB; margin: 0; font-size: 24px; }
-            .brand { font-weight: bold; color: #333; }
-            .brand span { color: #E6C200; }
-            .meta { color: #666; font-size: 0.9em; margin-top: 5px; font-style: italic; }
-            .content { white-space: pre-wrap; font-size: 14px; }
-            footer { margin-top: 50px; font-size: 0.8em; color: #999; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+            body { font-family: sans-serif; padding: 40px; color: #1a1a1a; line-height: 1.6; max-width: 800px; margin: 0 auto; }
+            header { border-bottom: 2px solid #FFD600; padding-bottom: 20px; margin-bottom: 30px; }
+            h1 { color: #0047BB; margin: 0; }
+            .content { white-space: pre-wrap; }
           </style>
         </head>
         <body>
-          <div class="container">
-            <header>
-              <div>
-                <h1>${manual.title}</h1>
-                <div class="meta">Categoría: ${manual.category} | Actualizado: ${manual.lastUpdated}</div>
-              </div>
-              <div class="brand">MOSCATO <span>NEUMÁTICOS</span></div>
-            </header>
-            <div class="content">
-              ${manual.textContent}
-            </div>
-            <footer>
-              Documento oficial generado desde el Portal Interno de Moscato Neumáticos.<br/>
-              Uso interno exclusivo.
-            </footer>
-          </div>
+          <header>
+            <h1>${manual.title}</h1>
+            <p>Categoría: ${manual.category} | Actualizado: ${manual.lastUpdated}</p>
+          </header>
+          <div class="content">${manual.textContent}</div>
         </body>
         </html>
       `;
-      
       const blob = new Blob([htmlContent], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${manual.title.replace(/\s+/g, '_')}.html`; // Download as HTML
+      link.download = `${manual.title.replace(/\s+/g, '_')}.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -133,22 +113,16 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative animate-fade-in">
       
-      {/* HERO SECTION */}
       <SectionHero
         title="Manuales y Procedimientos"
         subtitle="Biblioteca digital de documentación técnica, guías operativas y estándares de calidad de Moscato Neumáticos."
         badgeText="Base de Conocimiento"
         badgeIcon={BookOpen}
       >
-        {/* Search integrated into Hero */}
         <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 w-full max-w-md">
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-bold text-white">Búsqueda Rápida</label>
-            <button 
-              onClick={() => setShowHelp(!showHelp)}
-              className="text-brand-200 hover:text-white transition-colors"
-              title="Sugerir nuevo manual"
-            >
+            <button onClick={() => setShowHelp(!showHelp)} className="text-brand-200 hover:text-white transition-colors">
               <HelpCircle className="w-5 h-5" />
             </button>
           </div>
@@ -169,17 +143,11 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
             {filteredManuals.length} documentos disponibles
           </p>
 
-          {/* HELP PANEL */}
           {showHelp && (
             <div className="mt-4 bg-brand-800/90 border border-brand-500/50 p-4 rounded-xl text-xs text-brand-100 relative animate-fade-in backdrop-blur-sm shadow-lg">
                 <button onClick={() => setShowHelp(false)} className="absolute top-2 right-2 text-brand-400 hover:text-white"><X className="w-3 h-3"/></button>
                 <h4 className="font-bold text-white mb-2 flex items-center"><Info className="w-3 h-3 mr-1.5"/> ¿Falta algún procedimiento?</h4>
-                <p className="mb-2">Si notás que falta un manual importante o tenés redactada una guía de alguna tarea particular:</p>
-                <ul className="list-disc list-inside space-y-1 text-brand-200">
-                  <li>Enviala por el <strong>Buzón de Sugerencias</strong>.</li>
-                  <li>Contactá a administración para agregarla.</li>
-                </ul>
-                <p className="mt-2 text-gold-400 font-bold">¡Tu aporte ayuda a mejorar el conocimiento de todo el equipo!</p>
+                <p>Enviala por el <strong>Buzón de Sugerencias</strong> o contactá a administración.</p>
             </div>
           )}
         </div>
@@ -187,45 +155,61 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
 
       {/* READER MODAL */}
       {selectedManual && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col border-t-8 border-gold-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-6xl h-[92vh] flex flex-col border-t-8 border-gold-400 overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-colors">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <div>
                 <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white truncate max-w-md">{selectedManual.title}</h3>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-300 mt-1">
                   {selectedManual.category}
                 </span>
               </div>
-              <button 
-                onClick={() => setSelectedManual(null)}
-                className="text-gray-400 hover:text-red-500 transition-colors bg-gray-100 dark:bg-gray-800 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => handleDownload(selectedManual)}
+                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-bold transition-colors border border-gray-200 dark:border-gray-600"
+                >
+                  <Download className="w-4 h-4" /> Descargar
+                </button>
+                <button 
+                  onClick={() => setSelectedManual(null)}
+                  className="text-gray-400 hover:text-red-500 transition-colors bg-gray-100 dark:bg-gray-800 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
             
-            {/* Content (Scrollable or Iframe) */}
-            <div className="flex-grow bg-gray-100 dark:bg-gray-950 overflow-hidden relative">
+            {/* Content Area */}
+            <div className="flex-grow bg-gray-100 dark:bg-gray-950 relative">
               {selectedManual.textContent ? (
-                 /* TEXT MODE */
                  <div className="h-full overflow-y-auto p-8">
-                    <div className="prose max-w-none text-gray-800 whitespace-pre-line font-sans leading-relaxed text-base bg-white p-8 rounded-lg shadow-sm border border-gray-200 mx-auto max-w-4xl dark:bg-gray-900 dark:text-gray-300 dark:border-gray-800">
+                    <div className="prose max-w-none text-gray-800 whitespace-pre-line font-sans leading-relaxed text-base bg-white p-10 rounded-lg shadow-sm border border-gray-200 mx-auto max-w-4xl dark:bg-gray-900 dark:text-gray-300 dark:border-gray-800">
                       {selectedManual.textContent}
                     </div>
                  </div>
-              ) : selectedManual.link ? (
-                 /* PDF MODE (Iframe with Blob URL) */
-                 <iframe 
-                    src={pdfBlobUrl || ''} 
-                    className="w-full h-full border-0"
-                    title="Visor de PDF"
+              ) : pdfBlobUrl ? (
+                 /* Usamos <object> para mejor compatibilidad con PDFs */
+                 <object 
+                    data={pdfBlobUrl} 
+                    type="application/pdf" 
+                    className="w-full h-full"
                  >
-                    <p className="p-8 text-center text-gray-500">
-                      Tu navegador no soporta la visualización de PDFs. 
-                      <button onClick={() => handleDownload(selectedManual)} className="text-brand-600 font-bold underline ml-1">Descárgalo aquí</button>.
-                    </p>
-                 </iframe>
+                    <div className="flex flex-col items-center justify-center h-full p-10 text-center">
+                      <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 max-w-md">
+                        <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">No se puede previsualizar el PDF</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Su navegador o dispositivo no permite ver el PDF directamente aquí.</p>
+                        <button 
+                          onClick={() => handleDownload(selectedManual)}
+                          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl transition-all shadow-md"
+                        >
+                          <Download className="w-5 h-5" /> Descargar para leer
+                        </button>
+                      </div>
+                    </div>
+                 </object>
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">
                   No hay contenido disponible para visualizar.
@@ -234,15 +218,15 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
             </div>
 
             {/* Footer */}
-            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-xl flex justify-between items-center">
-              <span className="text-xs text-gray-400 italic hidden sm:inline">
-                {selectedManual.link ? 'Visualizando PDF adjunto' : 'Visualizando versión digital'}
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex justify-between items-center px-6">
+              <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">
+                Moscato Neumáticos - Portal Interno
               </span>
               <button
                 onClick={() => setSelectedManual(null)}
-                className="px-6 py-2 bg-brand-600 text-white font-bold rounded-md hover:bg-brand-700 transition-colors"
+                className="px-8 py-2 bg-brand-600 text-white font-black rounded-lg hover:bg-brand-700 transition-colors shadow-lg"
               >
-                Cerrar
+                CERRAR VISOR
               </button>
             </div>
           </div>
@@ -269,67 +253,57 @@ export const Manuals: React.FC<ManualsProps> = ({ manuals }) => {
       {/* Manuals Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredManuals.map((manual) => (
-          <div key={manual.id} className="bg-white dark:bg-gray-800 flex flex-col rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all">
+          <div key={manual.id} className="group bg-white dark:bg-gray-800 flex flex-col rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
             <div className="p-6 flex-1">
               <div className="flex items-center justify-between mb-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  manual.category === ManualCategory.SEGURIDAD ? 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200' :
-                  manual.category === ManualCategory.ADMINISTRACION ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-200' :
-                  'bg-brand-100 text-brand-800 dark:bg-brand-900/50 dark:text-brand-200'
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  manual.category === ManualCategory.SEGURIDAD ? 'bg-red-100 text-red-800 dark:bg-red-900/50' :
+                  manual.category === ManualCategory.ADMINISTRACION ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/50' :
+                  'bg-brand-100 text-brand-800 dark:bg-brand-900/50'
                 }`}>
                   {manual.category}
                 </span>
-                <span className="text-gray-400 text-xs">{manual.lastUpdated}</span>
+                <span className="text-gray-400 text-[10px] font-bold">{manual.lastUpdated}</span>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
                 <FileText className="w-5 h-5 mr-2 text-gray-400" />
                 {manual.title}
               </h3>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 line-clamp-3">
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
                 {manual.description}
               </p>
             </div>
             
-            {/* Action Buttons Footer */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 rounded-b-lg border-t border-gray-100 dark:border-gray-700 flex flex-col gap-3">
-              <div className="flex justify-between items-center gap-2">
-                {/* READ ONLINE BUTTON */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
                 {(manual.textContent || manual.link) ? (
                   <button 
                     onClick={() => setSelectedManual(manual)}
-                    className="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold py-2 px-3 rounded flex items-center justify-center transition-colors shadow-sm"
+                    className="flex-1 bg-brand-600 hover:bg-brand-700 text-white text-xs font-black py-2.5 px-4 rounded-lg flex items-center justify-center transition-all shadow-md active:scale-95"
                   >
                     <Eye className="w-4 h-4 mr-2" />
-                    Leer Online
+                    LEER ONLINE
                   </button>
                 ) : (
-                  <button disabled className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 text-sm font-medium py-2 px-3 rounded flex items-center justify-center cursor-not-allowed">
-                     <Eye className="w-4 h-4 mr-2" />
-                     No disp.
+                  <button disabled className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-400 text-xs font-bold py-2.5 px-4 rounded-lg flex items-center justify-center cursor-not-allowed">
+                     NO DISPONIBLE
                   </button>
                 )}
 
-                {/* DOWNLOAD BUTTON */}
                 <button
                   onClick={() => handleDownload(manual)}
-                  disabled={!manual.link && !manual.textContent}
-                  className={`flex-shrink-0 border p-2 rounded transition-colors ${
-                    (manual.link || manual.textContent)
-                      ? 'text-brand-600 hover:text-brand-800 bg-white hover:bg-brand-50 border-brand-200 dark:bg-gray-700 dark:text-brand-400 dark:border-gray-600 dark:hover:bg-gray-600 cursor-pointer'
-                      : 'text-gray-300 border-gray-200 dark:bg-gray-800 dark:border-gray-700 cursor-not-allowed'
-                  }`}
-                  title={manual.link ? "Descargar PDF" : "Descargar Versión Imprimible"}
+                  className="flex-shrink-0 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm"
+                  title="Descargar"
                 >
-                  <Download className="w-5 h-5" />
+                  <Download className="w-4 h-4" />
                 </button>
-              </div>
             </div>
           </div>
         ))}
 
         {filteredManuals.length === 0 && (
-          <div className="col-span-full text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">No se encontraron manuales con los criterios seleccionados.</p>
+          <div className="col-span-full text-center py-20 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+            <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No se encontraron manuales con los criterios seleccionados.</p>
           </div>
         )}
       </div>

@@ -104,20 +104,20 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fade-in">
         {/* Form News */}
-        <div className={`bg-gray-50 p-6 rounded-lg border h-fit transition-colors ${editingNewsId ? 'border-orange-400 ring-4 ring-orange-50' : 'border-gray-200'}`}>
+        <div className={`bg-gray-50 dark:bg-gray-800/50 p-6 rounded-lg border h-fit transition-colors ${editingNewsId ? 'border-orange-400 dark:border-orange-500 ring-4 ring-orange-50 dark:ring-orange-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
         <div className="flex justify-between items-start mb-4">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center">
             <span className="flex items-center">
               {editingNewsId ? <Edit2 className="w-5 h-5 mr-2 text-orange-500" /> : <Plus className="w-5 h-5 mr-2" />}
               {editingNewsId ? 'Editar Novedad' : 'Agregar Novedad'}
             </span>
           </h3>
           <div className="flex gap-2">
-            <button onClick={() => setShowHelp(!showHelp)} className="text-brand-500 hover:text-brand-700" title="Ayuda de configuración">
+            <button onClick={() => setShowHelp(!showHelp)} className="text-brand-500 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-200" title="Ayuda de configuración">
               <HelpCircle className="w-5 h-5" />
             </button>
             {editingNewsId && (
-              <button onClick={cancelEditNews} className="text-gray-400 hover:text-gray-600">
+              <button onClick={cancelEditNews} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <X className="w-5 h-5" />
               </button>
             )}
@@ -126,8 +126,8 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
 
         {/* HELP PANEL */}
         {showHelp && (
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3 text-xs text-blue-800 relative animate-fade-in">
-             <button onClick={() => setShowHelp(false)} className="absolute top-1 right-1 text-blue-400"><X className="w-4 h-4"/></button>
+          <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-3 text-xs text-blue-800 dark:text-blue-200 relative animate-fade-in">
+             <button onClick={() => setShowHelp(false)} className="absolute top-1 right-1 text-blue-400 hover:text-blue-600"><X className="w-4 h-4"/></button>
              <h4 className="font-bold mb-1 flex items-center"><Info className="w-3 h-3 mr-1"/> Configuración Avanzada:</h4>
              <ul className="list-disc list-inside space-y-1">
                <li><strong>Destacada:</strong> Muestra la noticia en tamaño grande y con borde dorado al principio de la página. Ideal para anuncios muy importantes.</li>
@@ -138,33 +138,33 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
 
         <form onSubmit={submitNews} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Título</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Título</label>
             <input
               type="text"
               required
               value={newNews.title}
               onChange={(e) => setNewNews({...newNews, title: e.target.value})}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
+              className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm border p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Etiqueta/Departamento</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Etiqueta/Departamento</label>
             <input
               type="text"
               placeholder="Ej: Taller, Ventas, General"
               value={newNews.category}
               onChange={(e) => setNewNews({...newNews, category: e.target.value})}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
+              className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm border p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Descripción</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
             <textarea
               required
               rows={3}
               value={newNews.description}
               onChange={(e) => setNewNews({...newNews, description: e.target.value})}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
+              className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm border p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-brand-500 focus:border-brand-500"
             />
           </div>
 
@@ -172,7 +172,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
           <div className="space-y-3 pt-2">
             
             {/* Destacado */}
-            <div className={`p-3 rounded border transition-colors ${newNews.highlight ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
+            <div className={`p-3 rounded border transition-colors ${newNews.highlight ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <input 
@@ -180,9 +180,9 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
                     id="highlight" 
                     checked={newNews.highlight || false}
                     onChange={(e) => setNewNews({...newNews, highlight: e.target.checked})}
-                    className="w-4 h-4 text-gold-500 border-gray-300 rounded focus:ring-gold-500"
+                    className="w-4 h-4 text-gold-500 border-gray-300 dark:border-gray-500 rounded focus:ring-gold-500 bg-white dark:bg-gray-600"
                   />
-                  <label htmlFor="highlight" className="text-sm font-bold text-gray-700 flex items-center cursor-pointer">
+                  <label htmlFor="highlight" className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center cursor-pointer">
                     <Star className="w-4 h-4 text-gold-500 mr-1" />
                     Destacada
                   </label>
@@ -191,7 +191,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
               
               {newNews.highlight && (
                 <div className="mt-3 flex items-center animate-fade-in pl-6">
-                  <label className="text-xs font-medium text-gray-600 mr-2 whitespace-nowrap">Duración (días):</label>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2 whitespace-nowrap">Duración (días):</label>
                   <input 
                     type="number" 
                     min="1"
@@ -199,15 +199,15 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
                     value={newNews.highlightDuration || ''}
                     placeholder="15"
                     onChange={(e) => setNewNews({...newNews, highlightDuration: parseInt(e.target.value) || 15})}
-                    className="w-20 text-xs border-gray-300 rounded p-1 border text-center font-bold"
+                    className="w-20 text-xs border-gray-300 dark:border-gray-600 rounded p-1 border text-center font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
-                  <span className="text-xs text-gray-400 ml-2 italic">Días visible en cartelera</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 italic">Días visible en cartelera</span>
                 </div>
               )}
             </div>
 
             {/* Auto Eliminación */}
-            <div className={`p-3 rounded border transition-colors ${newNews.autoDelete ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200'}`}>
+            <div className={`p-3 rounded border transition-colors ${newNews.autoDelete ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <input 
@@ -215,9 +215,9 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
                     id="autoDelete" 
                     checked={newNews.autoDelete || false}
                     onChange={(e) => setNewNews({...newNews, autoDelete: e.target.checked})}
-                    className="w-4 h-4 text-red-500 border-gray-300 rounded focus:ring-red-500"
+                    className="w-4 h-4 text-red-500 border-gray-300 dark:border-gray-500 rounded focus:ring-red-500 bg-white dark:bg-gray-600"
                   />
-                  <label htmlFor="autoDelete" className="text-sm font-bold text-gray-700 flex items-center cursor-pointer">
+                  <label htmlFor="autoDelete" className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center cursor-pointer">
                     <CalendarX className="w-4 h-4 text-red-500 mr-1" />
                     Auto-Eliminación
                   </label>
@@ -226,7 +226,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
 
               {newNews.autoDelete && (
                 <div className="mt-3 flex items-center animate-fade-in pl-6">
-                  <label className="text-xs font-medium text-gray-600 mr-2 whitespace-nowrap">Eliminar tras:</label>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2 whitespace-nowrap">Eliminar tras:</label>
                   <input 
                     type="number" 
                     min="1"
@@ -234,9 +234,9 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
                     value={newNews.autoDeleteDuration || ''}
                     placeholder="30"
                     onChange={(e) => setNewNews({...newNews, autoDeleteDuration: parseInt(e.target.value) || 30})}
-                    className="w-20 text-xs border-gray-300 rounded p-1 border text-center font-bold"
+                    className="w-20 text-xs border-gray-300 dark:border-gray-600 rounded p-1 border text-center font-bold bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
-                  <span className="text-xs text-gray-400 ml-2 italic">días desde publicación</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 ml-2 italic">días desde publicación</span>
                 </div>
               )}
             </div>
@@ -248,7 +248,7 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
               <button 
                 type="button" 
                 onClick={cancelEditNews}
-                className="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded-md hover:bg-gray-300 transition-colors"
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
                 Cancelar
               </button>
@@ -264,32 +264,32 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
             </button>
           </div>
         </form>
-      </div>
+        </div>
 
       {/* List News */}
       <div className="lg:col-span-2">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Novedades Publicadas ({news.length})</h3>
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden max-h-[600px] overflow-y-auto">
-            <ul className="divide-y divide-gray-200">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Novedades Publicadas ({news.length})</h3>
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden max-h-[600px] overflow-y-auto">
+            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
               {news.map(item => (
-                <li key={item.id} className={`p-4 flex justify-between items-center hover:bg-gray-50 group transition-colors ${item.highlight ? 'bg-yellow-50/50' : ''}`}>
+                <li key={item.id} className={`p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 group transition-colors ${item.highlight ? 'bg-yellow-50/50 dark:bg-yellow-900/10' : ''}`}>
                   <div className="flex-grow">
                     <div className="flex items-center flex-wrap gap-2">
-                      <p className="font-bold text-sm text-gray-900">{item.title}</p>
+                      <p className="font-bold text-sm text-gray-900 dark:text-white">{item.title}</p>
                       {item.highlight && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800 border border-yellow-200" title={`Destacada por ${item.highlightDuration || 15} días`}>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-700" title={`Destacada por ${item.highlightDuration || 15} días`}>
                           <Star className="w-3 h-3 mr-1 fill-current" /> {item.highlightDuration || 15}d
                         </span>
                       )}
                       {item.autoDelete && (
-                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-600 border border-red-100" title={`Se elimina en ${item.autoDeleteDuration} días`}>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 border border-red-100 dark:border-red-800" title={`Se elimina en ${item.autoDeleteDuration} días`}>
                           <Clock className="w-3 h-3 mr-1" /> {item.autoDeleteDuration}d
                         </span>
                       )}
                     </div>
                     <div className="flex items-center mt-1">
-                      <p className="text-xs text-gray-500 mr-3">{item.date}</p>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mr-3">{item.date}</p>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                         {item.category}
                       </span>
                     </div>
@@ -297,14 +297,14 @@ export const AdminNews: React.FC<AdminNewsProps> = ({ news, onAddNews, onUpdateN
                   <div className="flex space-x-1 pl-4">
                     <button 
                       onClick={() => handleEditNews(item)}
-                      className="text-gray-400 hover:text-orange-500 p-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 p-2 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Editar"
                     >
                       <Edit2 className="w-5 h-5" />
                     </button>
                     <button 
                       onClick={() => onDeleteNews(item.id)}
-                      className="text-gray-400 hover:text-red-500 p-2"
+                      className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-2"
                       title="Eliminar"
                     >
                       <Trash2 className="w-5 h-5" />

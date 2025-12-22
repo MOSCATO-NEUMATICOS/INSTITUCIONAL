@@ -49,97 +49,97 @@ export const AdminSuppliers: React.FC<AdminSuppliersProps> = ({ suppliers, onAdd
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
         {/* Suppliers List */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden h-fit">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden h-fit">
         <div className="bg-green-700 text-white px-4 py-3 flex justify-between items-center">
             <h4 className="font-bold text-sm flex items-center"><Tag className="w-4 h-4 mr-2" /> Proveedores Configurados</h4>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {suppliers && suppliers.length > 0 ? (
             suppliers.map(sup => (
-                <div key={sup.id} className="p-4 hover:bg-gray-50 flex justify-between items-center group">
+                <div key={sup.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 flex justify-between items-center group transition-colors">
                 <div>
-                    <span className="block font-bold text-gray-900">{sup.name}</span>
+                    <span className="block font-bold text-gray-900 dark:text-white">{sup.name}</span>
                     <div className="flex flex-col gap-1 mt-1">
-                    <span className="flex items-center text-xs text-gray-500"><Percent className="w-3 h-3 mr-1" /> Desc: {sup.discountChain}</span>
-                    <span className="flex items-center text-xs text-gray-500">
+                    <span className="flex items-center text-xs text-gray-500 dark:text-gray-400"><Percent className="w-3 h-3 mr-1" /> Desc: {sup.discountChain}</span>
+                    <span className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                         <TrendingUp className="w-3 h-3 mr-1" /> 
                         Margen: {sup.margin}% ({sup.marginBase === 'list' ? 'sobre Lista' : 'sobre Costo'})
                     </span>
                     {sup.addIva && (
-                        <span className="flex items-center text-xs text-green-600 font-bold">
+                        <span className="flex items-center text-xs text-green-600 dark:text-green-400 font-bold">
                         <Plus className="w-3 h-3 mr-1" /> Suma IVA (21%)
                         </span>
                     )}
                     </div>
                 </div>
                 <div className="flex space-x-1">
-                    <button onClick={() => handleEditSupplier(sup)} className="text-gray-400 hover:text-orange-600 p-2 opacity-0 group-hover:opacity-100 transition-opacity" title="Editar">
+                    <button onClick={() => handleEditSupplier(sup)} className="text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 p-2 opacity-0 group-hover:opacity-100 transition-opacity" title="Editar">
                     <Edit2 className="w-5 h-5" />
                     </button>
-                    <button onClick={() => onDeleteSupplier(sup.id)} className="text-gray-400 hover:text-red-600 p-2" title="Eliminar">
+                    <button onClick={() => onDeleteSupplier(sup.id)} className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-2" title="Eliminar">
                     <Trash2 className="w-5 h-5" />
                     </button>
                 </div>
                 </div>
             ))
             ) : (
-            <div className="p-6 text-center text-gray-500 text-sm">No hay proveedores cargados.</div>
+            <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm">No hay proveedores cargados.</div>
             )}
         </div>
         </div>
 
         {/* Add/Edit Supplier Form */}
-        <div className={`bg-gray-50 p-6 rounded-lg border h-fit transition-colors ${editingSupplierId ? 'border-orange-400 ring-4 ring-orange-50' : 'border-gray-200'}`}>
-        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
+        <div className={`bg-gray-50 dark:bg-gray-800/50 p-6 rounded-lg border h-fit transition-colors ${editingSupplierId ? 'border-orange-400 dark:border-orange-500 ring-4 ring-orange-50 dark:ring-orange-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center justify-between">
             <span className="flex items-center">
             {editingSupplierId ? <Edit2 className="w-5 h-5 mr-2 text-orange-500" /> : <Plus className="w-5 h-5 mr-2" />}
             {editingSupplierId ? 'Editar Proveedor' : 'Agregar Nuevo Proveedor'}
             </span>
             {editingSupplierId && (
-            <button onClick={cancelEditSupplier} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+            <button onClick={cancelEditSupplier} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"><X className="w-5 h-5" /></button>
             )}
         </h3>
         <form onSubmit={submitSupplier} className="space-y-4">
             <div>
-            <label className="block text-sm font-medium text-gray-700">Nombre del Proveedor</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre del Proveedor</label>
             <input
                 type="text"
                 required
                 value={newSupplier.name}
                 onChange={(e) => setNewSupplier({...newSupplier, name: e.target.value})}
                 placeholder="Ej: Corven"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
+                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm border p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500"
             />
             </div>
             <div>
-            <label className="block text-sm font-medium text-gray-700">Cadena de Descuentos (Habitual)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cadena de Descuentos (Habitual)</label>
             <input
                 type="text"
                 required
                 value={newSupplier.discountChain}
                 onChange={(e) => setNewSupplier({...newSupplier, discountChain: e.target.value})}
                 placeholder="Ej: 35+10+5"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
+                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm border p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500"
             />
-            <p className="text-xs text-gray-500 mt-1">Ingrese los descuentos separados por "+" o espacios.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Ingrese los descuentos separados por "+" o espacios.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
             <div>
-                <label className="block text-sm font-medium text-gray-700">Margen Sugerido (%)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Margen Sugerido (%)</label>
                 <input
                 type="number"
                 required
                 value={newSupplier.margin}
                 onChange={(e) => setNewSupplier({...newSupplier, margin: parseFloat(e.target.value)})}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
+                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm border p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500"
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">Base del Margen</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Base del Margen</label>
                 <select
                 value={newSupplier.marginBase || 'cost'}
                 onChange={(e) => setNewSupplier({...newSupplier, marginBase: e.target.value as 'cost' | 'list'})}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm border p-2 bg-white text-gray-900"
+                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm border p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-green-500 focus:border-green-500"
                 >
                 <option value="cost">Sobre Costo</option>
                 <option value="list">Sobre Lista</option>
@@ -147,15 +147,15 @@ export const AdminSuppliers: React.FC<AdminSuppliersProps> = ({ suppliers, onAdd
             </div>
             </div>
 
-            <div className="bg-white p-3 rounded border border-gray-200">
+            <div className="bg-white dark:bg-gray-700/50 p-3 rounded border border-gray-200 dark:border-gray-600">
             <label className="flex items-center space-x-2 cursor-pointer">
                 <input 
                 type="checkbox" 
                 checked={newSupplier.addIva || false}
                 onChange={(e) => setNewSupplier({...newSupplier, addIva: e.target.checked})}
-                className="w-4 h-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                className="w-4 h-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-500 rounded bg-white dark:bg-gray-600"
                 />
-                <span className="text-sm font-medium text-gray-700">El precio de lista es SIN IVA (Sumar 21%)</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">El precio de lista es SIN IVA (Sumar 21%)</span>
             </label>
             </div>
             
@@ -164,7 +164,7 @@ export const AdminSuppliers: React.FC<AdminSuppliersProps> = ({ suppliers, onAdd
                 <button 
                 type="button" 
                 onClick={cancelEditSupplier}
-                className="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded-md hover:bg-gray-300 transition-colors"
+                className="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                 Cancelar
                 </button>
