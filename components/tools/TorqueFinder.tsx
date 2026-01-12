@@ -43,7 +43,7 @@ const VEHICLE_DB: Record<string, Record<string, VehicleData>> = {
   "Chery": {
     "Fulwin": { nm: 110, thread: "M12 x 1.5", hex: "19mm", type: 'Bulón', lockStrategy: 'simple', lockCode: 'ANTI02' },
     "QQ": { nm: 100, thread: "M12 x 1.5", hex: "19mm", type: 'Bulón', lockStrategy: 'simple', lockCode: 'ANTI02' },
-    "Tiggo": { nm: 110, thread: "M12 x 1.5", hex: "19mm", type: 'Bulón', lockStrategy: 'simple', lockCode: 'ANTI02' }
+    "Tiggo": { nm: 110, thread: "M12 x 1.5", hex: "19mm", type: 'Tuerca', lockStrategy: 'simple', lockCode: 'ANTI05' }
   },
   "Chevrolet": {
     "Agile": { nm: 110, thread: "M12 x 1.5", hex: "19mm", type: 'Bulón', lockStrategy: 'simple', lockCode: 'ANTI02' }, 
