@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Settings, Search, Truck, AlertTriangle, Info, RotateCcw, Wrench, Gauge, Hexagon, CircleDot, HelpCircle, X, Lock, Disc } from 'lucide-react';
 
@@ -84,7 +83,8 @@ const VEHICLE_DB: Record<string, Record<string, VehicleData>> = {
     "Kuga": { nm: 135, thread: "M12 x 1.5", hex: "19mm", type: 'Tuerca', lockStrategy: 'simple', lockCode: 'ANTI05' },
     "Mondeo": { nm: 135, thread: "M12 x 1.5", hex: "19mm", type: 'Tuerca', lockStrategy: 'simple', lockCode: 'ANTI05' },
     "Ranger": { nm: 135, thread: "M12 x 1.5", hex: "19mm", type: 'Tuerca', lockStrategy: 'simple', lockCode: 'ANTI05' },
-    "F-100": { nm: 150, thread: "1/2\"", hex: "21mm", type: 'Tuerca', lockStrategy: 'simple', lockCode: 'ANTI06' }
+    "F-100": { nm: 150, thread: "1/2\"", hex: "21mm", type: 'Tuerca', lockStrategy: 'simple', lockCode: 'ANTI06' },
+    "Territory": { nm: 140, thread: "M14 x 1.5", hex: "19mm", type: 'Bulón', lockStrategy: 'simple', lockCode: 'ANTI03' }
   },
   "Honda": {
     "Civic": { nm: 108, thread: "M12 x 1.5", hex: "19mm", type: 'Tuerca', lockStrategy: 'simple', lockCode: 'ANTI05' }, // Honda orig lleva asiento esferico, pero ANTI05 suele ser conico. Revisar si hay ANTI Honda. Asumimos 05 por rosca.
@@ -240,7 +240,7 @@ export const TorqueFinder: React.FC = () => {
           
           {/* SELECTION AREA */}
           <div className="space-y-4">
-            <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-lg border border-gray-200 dark:border-gray-700">
               <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
                 Seleccione Vehículo
               </h4>
@@ -276,7 +276,7 @@ export const TorqueFinder: React.FC = () => {
                       value={selectedModel}
                       onChange={(e) => setSelectedModel(e.target.value)}
                       disabled={!selectedBrand}
-                      className="block w-full pl-10 pr-3 py-2.5 text-sm border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-orange-500 focus:border-orange-500 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400"
+                      className="block w-full pl-10 pr-3 py-2.5 text-sm border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400"
                     >
                       <option value="">-- Seleccionar Modelo --</option>
                       {availableModels.map(model => (
@@ -294,7 +294,7 @@ export const TorqueFinder: React.FC = () => {
               {result && result.lockStrategy === 'rim_dependent' && (
                  <div className="mt-4 animate-fade-in">
                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Tipo de Llanta</label>
-                    <div className="flex bg-white dark:bg-gray-800 rounded-md p-1 border border-gray-200 dark:border-gray-600">
+                    <div className="flex bg-white dark:bg-gray-800 rounded-md p-1 border border-gray-200 dark:border-gray-700">
                        <button 
                          onClick={() => setRimType('alloy')}
                          className={`flex-1 py-1.5 text-xs font-bold rounded flex items-center justify-center transition-all ${rimType === 'alloy' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200' : 'text-gray-500 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700'}`}
